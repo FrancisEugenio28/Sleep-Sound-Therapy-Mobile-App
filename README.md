@@ -1,6 +1,6 @@
-# flutter_application_1
+# Sleep-Sound-Therapy-Mobile-Application
 
-A new Flutter project.
+A mobile application for our Thesis "Embedded Sound Therapy: Engineering Smart Devices for Sleep Quality Enhancement".
 
 ## Getting Started
 
