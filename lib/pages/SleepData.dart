@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class SleepDataScreen extends StatelessWidget {
-  const SleepDataScreen({Key? key}) : super(key: key);
+class SleepDataPageContent extends StatelessWidget {
+  const SleepDataPageContent({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +29,6 @@ class SleepDataScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
     );
   }
 
@@ -236,44 +235,6 @@ class SleepDataScreen extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomNav(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.white24, width: 1),
-        ),
-      ),
-      child: BottomNavigationBar(
-        backgroundColor: const Color(0xFF1a1a2e),
-        selectedItemColor: const Color(0xFF6a1b9a),
-        unselectedItemColor: Colors.white54,
-        currentIndex: 1, // Sleep Data is selected
-        onTap: (index) {
-          if (index == 0) {
-            // Go back to Music/Landing page
-            Navigator.pop(context);
-          } else if (index == 2) {
-            // Diagnostics - do nothing for now or show message
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.music_note),
-            label: 'Music',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Sleep Data',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.psychology),
-            label: 'Diagnostics',
-          ),
-        ],
-      ),
     );
   }
 }

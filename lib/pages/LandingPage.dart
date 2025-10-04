@@ -1,37 +1,17 @@
 import 'package:flutter/material.dart';
-import 'SleepData.dart';
 
-class SleepTherapyApp extends StatelessWidget {
-  const SleepTherapyApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart Sleep',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        primaryColor: const Color(0xFF1a1a2e),
-        scaffoldBackgroundColor: const Color(0xFF1a1a2e),
-        fontFamily: 'Sans-serif',
-      ),
-      home: const SoundTherapyScreen(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
-
-class SoundTherapyScreen extends StatefulWidget {
-  const SoundTherapyScreen({Key? key}) : super(key: key);
+// This is now just the content widget, no Scaffold or BottomNavigationBar
+class MusicPageContent extends StatefulWidget {
+  const MusicPageContent({Key? key}) : super(key: key);
 
   @override
-  State<SoundTherapyScreen> createState() => _SoundTherapyScreenState();
+  State<MusicPageContent> createState() => _MusicPageContentState();
 }
 
-class _SoundTherapyScreenState extends State<SoundTherapyScreen> {
+class _MusicPageContentState extends State<MusicPageContent> {
   String selectedSound = 'Classical';
   bool isPlaying = false;
   double frequencyValue = 300.0;
-  int selectedTab = 0;
 
   final List<String> soundOptions = [
     'Broadband\nNoise',
@@ -340,49 +320,6 @@ class _SoundTherapyScreenState extends State<SoundTherapyScreen> {
               ),
             ),
 
-            // Bottom Navigation
-            Container(
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.white24, width: 1),
-                ),
-              ),
-              child: BottomNavigationBar(
-                backgroundColor: const Color(0xFF1a1a2e),
-                selectedItemColor: const Color(0xFF6a1b9a),
-                unselectedItemColor: Colors.white54,
-                currentIndex: selectedTab,
-                onTap: (index) {
-                  if (index == 1) {
-                    // Navigate to Sleep Data screen
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SleepDataScreen(),
-                      ),
-                    );
-                  } else {
-                    setState(() {
-                      selectedTab = index;
-                    });
-                  }
-                },
-                items: const [
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.music_note),
-                    label: 'Music',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.bar_chart),
-                    label: 'Sleep Data',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.psychology),
-                    label: 'Diagnostics',
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
