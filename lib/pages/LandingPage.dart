@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shared_header.dart';
 
 // This is now just the content widget, no Scaffold or BottomNavigationBar
 class MusicPageContent extends StatefulWidget {
@@ -29,53 +30,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
         child: Column(
           children: [
             // Header
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Smart Sleep',
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      Text(
-                        'Embedded Sound Therapy',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: const [
-                      Text(
-                        '08/18/2025',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
-                      ),
-                      Text(
-                        'Wednesday',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            const SharedHeader(),
 
             const Divider(color: Colors.white24, height: 1),
 

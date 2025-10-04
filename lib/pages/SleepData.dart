@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shared_header.dart';
 
 class SleepDataPageContent extends StatelessWidget {
   const SleepDataPageContent({Key? key}) : super(key: key);
@@ -9,7 +10,7 @@ class SleepDataPageContent extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            const SharedHeader(),
             const Divider(color: Colors.white24, height: 1),
             Expanded(
               child: SingleChildScrollView(
@@ -28,47 +29,6 @@ class SleepDataPageContent extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Smart Sleep',
-                style: TextStyle(fontSize: 16, color: Colors.white70),
-              ),
-              Text(
-                'Embedded Sound Therapy',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: const [
-              Text(
-                '06/18/2025',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-              Text(
-                'Wednesday',
-                style: TextStyle(fontSize: 14, color: Colors.white70),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/shared_header.dart';
 
 class DiagnosticPageContent extends StatelessWidget {
   const DiagnosticPageContent({Key? key}) : super(key: key);
@@ -10,30 +11,9 @@ class DiagnosticPageContent extends StatelessWidget {
         child: Column(
           children: [
             // Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'SmartStep\nEmbedded Sound Therapy',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                      height: 1.4,
-                    ),
-                  ),
-                  const Text(
-                    '06/18/2025\nWednesday',
-                    textAlign: TextAlign.right,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
+            const SharedHeader(
+              title: 'Smart Sleep',
+              subtitle: 'Embedded Sound Therapy',
             ),
 
             // Device Status Card
