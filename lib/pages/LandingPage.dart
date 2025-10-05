@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
+import 'package:syncfusion_flutter_sliders/sliders.dart';
 
 // This is now just the content widget, no Scaffold or BottomNavigationBar
 class MusicPageContent extends StatefulWidget {
@@ -217,56 +218,37 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     // Frequency Slider
                     Row(
                       children: [
-                        const Icon(
-                          Icons.graphic_eq,
-                          color: Colors.white70,
-                          size: 24,
+                      const Icon(
+                        Icons.graphic_eq,
+                        color: Colors.white70,
+                        size: 24,
+                      ),
+                      Expanded(
+                        child: SfSlider(
+                          min: 50.0,
+                          max: 500.0,
+                          value: frequencyValue,
+                          interval: 50,
+                          stepSize: 50,
+                          showTicks: true,
+                          showLabels: true,
+                          enableTooltip: true,
+                          activeColor: const Color(0xFF6a1b9a),
+                          inactiveColor: Colors.white24,
+                          onChanged: (dynamic value) {
+                            setState(() {
+                              frequencyValue = value;
+                            });
+                          },
                         ),
-                        Expanded(
-                          child: SliderTheme(
-                            data: SliderThemeData(
-                              activeTrackColor: const Color(0xFF6a1b9a),
-                              inactiveTrackColor: Colors.white24,
-                              thumbColor: const Color(0xFF6a1b9a),
-                              overlayColor: const Color(0xFF6a1b9a).withOpacity(0.3),
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 8,
-                              ),
-                              trackHeight: 4,
-                            ),
-                            child: Slider(
-                              value: frequencyValue,
-                              min: 60,
-                              max: 500,
-                              onChanged: (value) {
-                                setState(() {
-                                  frequencyValue = value;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
+                    ],
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32.0),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: const [
-                          Text(
-                            '60 Hz',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white54,
-                            ),
-                          ),
-                          Text(
-                            '500 Hz',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white54,
-                            ),
-                          ),
                         ],
                       ),
                     ),
