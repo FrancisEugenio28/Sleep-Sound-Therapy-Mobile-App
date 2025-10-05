@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
+import 'package:rive_animated_icon/rive_animated_icon.dart';
 
 // This is now just the content widget, no Scaffold or BottomNavigationBar
 class MusicPageContent extends StatefulWidget {
@@ -191,7 +192,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
 
                     const SizedBox(height: 32),
 
-                    // Frequency Section
+                                        // Frequency Section
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: const [
@@ -218,10 +219,12 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     // Frequency Slider
                     Row(
                       children: [
-                      const Icon(
-                        Icons.graphic_eq,
+                      RiveAnimatedIcon(
+                        riveIcon: RiveIcon.sound, 
+                        width: 36,
+                        height: 36,
                         color: Colors.white70,
-                        size: 24,
+                        loopAnimation: true, 
                       ),
                       Expanded(
                         child: SfSlider(
