@@ -6,10 +6,10 @@ class SharedHeader extends StatelessWidget {
   final String subtitle;
 
   const SharedHeader({
-    Key? key,
+    super.key,
     this.title = 'Smart Sleep',
     this.subtitle = 'Embedded Sound Therapy',
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

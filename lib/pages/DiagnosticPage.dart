@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
 
 class DiagnosticPageContent extends StatelessWidget {
-  const DiagnosticPageContent({Key? key}) : super(key: key);
+  const DiagnosticPageContent({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -152,11 +152,11 @@ class StatusCard extends StatelessWidget {
   final String status;
 
   const StatusCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.subtitle,
     required this.status,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +220,7 @@ class StatusCard extends StatelessWidget {
 }
 
 class SystemFunctionButton extends StatelessWidget {
-  const SystemFunctionButton({Key? key}) : super(key: key);
+  const SystemFunctionButton({super.key});
 
   @override
   Widget build(BuildContext context) {

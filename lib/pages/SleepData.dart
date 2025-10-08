@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
 
 class SleepDataPageContent extends StatelessWidget {
-  const SleepDataPageContent({Key? key}) : super(key: key);
+  const SleepDataPageContent({super.key});
 
   @override
   Widget build(BuildContext context) {
