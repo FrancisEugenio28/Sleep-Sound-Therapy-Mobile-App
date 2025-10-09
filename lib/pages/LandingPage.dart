@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
-import '../models/SoundPlayer.dart'; // make sure this path is correct!
+import '../models/Broadband.dart';
 
 class MusicPageContent extends StatefulWidget {
   const MusicPageContent({super.key});
@@ -33,9 +33,9 @@ class _MusicPageContentState extends State<MusicPageContent> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
           child: showSoundPlayer
-              ? SoundPlayerPage(
+              ? BroadbandPage(
                   key: const ValueKey('player'),
-                  soundName: selectedSound.replaceAll('\n', ' '),
+                  soundName: selectedSound.replaceAll('\n', ' '), 
                   artist: "Sleep Therapy",
                   category: "Relaxation",
                   onBack: () {
@@ -163,6 +163,26 @@ class _MusicPageContentState extends State<MusicPageContent> {
                           selectedSound = sound;
                           if (sound.contains('Broadband')) {
                             // when user clicks Broadband Noise
+                            showSoundPlayer = true;
+                          }
+                          if (sound.contains('Classical')) {
+                            // when user clicks Classical
+                            showSoundPlayer = true;
+                          }
+                          if (sound.contains('Nature')) {
+                            // when user clicks Nature
+                            showSoundPlayer = true;
+                          }
+                          if (sound.contains('Binaural')) {
+                            // when user clicks Binaural
+                            showSoundPlayer = true;
+                          }
+                          if (sound.contains('ASMR')) {
+                            // when user clicks ASMR
+                            showSoundPlayer = true;
+                          }
+                          if (sound.contains('Lullaby')) {
+                            // when user clicks Lullaby
                             showSoundPlayer = true;
                           }
                         });

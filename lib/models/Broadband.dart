@@ -2,25 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../widgets/shared_header.dart';
 
-class SoundPlayerPage extends StatefulWidget {
+class BroadbandPage extends StatefulWidget {
   final String soundName;
   final String artist;
   final String category;
   final VoidCallback onBack;
 
-  const SoundPlayerPage({
-    Key? key,
+  const BroadbandPage({
+    super.key,
     required this.soundName,
     required this.artist,
     required this.category,
     required this.onBack,
-  }) : super(key: key);
+  });
 
   @override
-  State<SoundPlayerPage> createState() => _SoundPlayerPageState();
+  State<BroadbandPage> createState() => _BroadbandPageState();
 }
 
-class _SoundPlayerPageState extends State<SoundPlayerPage> {
+class _BroadbandPageState extends State<BroadbandPage> {
   late AudioPlayer _audioPlayer;
   bool isPlaying = false;
   
@@ -76,6 +76,16 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
     super.initState();
     _audioPlayer = AudioPlayer();
     
+    // Add back button functionality
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: widget.onBack,
+        ),
+      );
+    });
+    
     // Listen to player state
     _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
@@ -109,13 +119,22 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Shared Header
+            // Header only
             const SharedHeader(
               title: 'Smart Sleep',
               subtitle: 'Embedded Sound Therapy',
             ),
 
             const Divider(color: Colors.white24, height: 1),
+
+            // Back button
+            Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: widget.onBack,
+              ),
+            ),
 
             // Main Content
             Expanded(
@@ -159,7 +178,7 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 22),
                             // Player Controls
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -247,7 +266,7 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                             ],
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),
