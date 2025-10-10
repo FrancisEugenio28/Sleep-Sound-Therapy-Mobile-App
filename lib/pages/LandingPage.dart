@@ -3,6 +3,11 @@ import '../widgets/shared_header.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
 import '../models/Broadband.dart';
+import '../models/Classical.dart';
+import '../models/Nature.dart';
+import '../models/Binaural.dart';
+import '../models/ASMR.dart';
+import '../models/Lullaby.dart';
 
 class MusicPageContent extends StatefulWidget {
   const MusicPageContent({super.key});
@@ -12,10 +17,11 @@ class MusicPageContent extends StatefulWidget {
 }
 
 class _MusicPageContentState extends State<MusicPageContent> {
-  String selectedSound = 'Classical';
+  String selectedSound = '';
   bool isPlaying = false;
   double frequencyValue = 300.0;
-  bool showSoundPlayer = false; // NEW: to toggle view
+  bool showSoundPlayer = false;
+  String selectedCategory = 'Broadband Noise'; 
 
   final List<String> soundOptions = [
     'Broadband\nNoise',
@@ -33,18 +39,80 @@ class _MusicPageContentState extends State<MusicPageContent> {
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
           child: showSoundPlayer
-              ? BroadbandPage(
-                  key: const ValueKey('player'),
-                  soundName: selectedSound.replaceAll('\n', ' '), 
-                  artist: "Sleep Therapy",
-                  category: "Relaxation",
-                  onBack: () {
-                    setState(() => showSoundPlayer = false);
-                  },
-                )
+              ? _buildSoundPlayer()  
               : _buildMusicOptionsView(),
         ),
       ),
+    );
+  }
+
+  // Add this new function
+  Widget _buildSoundPlayer() {
+    // Check which category to show based on your logic
+    if (selectedCategory == 'Broadband Noise') {
+      return BroadbandPage(
+        key: const ValueKey('broadband'),
+        soundName: selectedSound.replaceAll('\n', ' '),
+        category: "Broadband Noise",
+        onBack: () {
+          setState(() => showSoundPlayer = false);
+        },
+      );
+    } else if (selectedCategory == 'Classical') {
+      return ClassicalPage(
+        key: const ValueKey('classical'),
+        soundName: selectedSound.replaceAll('\n', ' '),
+        category: "Classical",
+        onBack: () {
+          setState(() => showSoundPlayer = false);
+        },
+      );
+    } else if (selectedCategory == 'Nature Sound') {
+      return NaturePage(
+        key: const ValueKey('nature'),
+        soundName: selectedSound.replaceAll('\n', ' '),
+        category: "Nature Sound",
+        onBack: () {
+          setState(() => showSoundPlayer = false);
+        },
+      );
+    } else if (selectedCategory == 'Binaural Beats') {
+      return BinauralPage(
+        key: const ValueKey('binaural'),
+        soundName: selectedSound.replaceAll('\n', ' '),
+        category: "Binaural Beats",
+        onBack: () {
+          setState(() => showSoundPlayer = false);
+        },
+      );
+    } else if (selectedCategory == 'ASMR') {
+      return ASMRPage(
+        key: const ValueKey('asmr'),
+        soundName: selectedSound.replaceAll('\n', ' '),
+        category: "ASMR",
+        onBack: () {
+          setState(() => showSoundPlayer = false);
+        },
+      );
+    } else if (selectedCategory == 'Lullaby') {
+      return LullabyPage(
+        key: const ValueKey('lullaby'),
+        soundName: selectedSound.replaceAll('\n', ' '),
+        category: "Lullaby",
+        onBack: () {
+          setState(() => showSoundPlayer = false);
+        },
+      );
+    }
+    
+    // Default fallback
+    return BroadbandPage(
+      key: const ValueKey('broadband'),
+      soundName: selectedSound.replaceAll('\n', ' '),
+      category: "Broadband Noise",
+      onBack: () {
+        setState(() => showSoundPlayer = false);
+      },
     );
   }
 
@@ -157,36 +225,29 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     final isSelected = sound.replaceAll('\n', ' ') ==
                         selectedSound.replaceAll('\n', ' ');
 
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          selectedSound = sound;
-                          if (sound.contains('Broadband')) {
-                            // when user clicks Broadband Noise
-                            showSoundPlayer = true;
-                          }
-                          if (sound.contains('Classical')) {
-                            // when user clicks Classical
-                            showSoundPlayer = true;
-                          }
-                          if (sound.contains('Nature')) {
-                            // when user clicks Nature
-                            showSoundPlayer = true;
-                          }
-                          if (sound.contains('Binaural')) {
-                            // when user clicks Binaural
-                            showSoundPlayer = true;
-                          }
-                          if (sound.contains('ASMR')) {
-                            // when user clicks ASMR
-                            showSoundPlayer = true;
-                          }
-                          if (sound.contains('Lullaby')) {
-                            // when user clicks Lullaby
-                            showSoundPlayer = true;
-                          }
-                        });
-                      },
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        selectedSound = sound;
+                        
+                        // Set the correct category based on what was clicked
+                        if (sound.contains('Broadband')) {
+                          selectedCategory = 'Broadband Noise';  
+                        } else if (sound.contains('Classical')) {
+                          selectedCategory = 'Classical';  
+                        } else if (sound.contains('Nature')) {
+                          selectedCategory = 'Nature Sound';  
+                        } else if (sound.contains('Binaural')) {
+                          selectedCategory = 'Binaural Beats';  
+                        } else if (sound.contains('ASMR')) {
+                          selectedCategory = 'ASMR';  
+                        } else if (sound.contains('Lullaby')) {
+                          selectedCategory = 'Lullaby';  
+                        }
+                        
+                        showSoundPlayer = true;  // Show player after setting category
+                      });
+                    },
                       child: Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF2a2a3e),

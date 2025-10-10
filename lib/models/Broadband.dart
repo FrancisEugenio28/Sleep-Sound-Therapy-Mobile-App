@@ -4,14 +4,12 @@ import '../widgets/shared_header.dart';
 
 class BroadbandPage extends StatefulWidget {
   final String soundName;
-  final String artist;
   final String category;
   final VoidCallback onBack;
 
   const BroadbandPage({
     super.key,
     required this.soundName,
-    required this.artist,
     required this.category,
     required this.onBack,
   });
@@ -23,6 +21,8 @@ class BroadbandPage extends StatefulWidget {
 class _BroadbandPageState extends State<BroadbandPage> {
   late AudioPlayer _audioPlayer;
   bool isPlaying = false;
+  String? currentlyPlayingSound;
+  String selectedCategory = 'Broadband Noise';
   
   // Sample playlist for each noise type
   final Map<String, List<String>> playlists = {
@@ -75,6 +75,7 @@ class _BroadbandPageState extends State<BroadbandPage> {
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
+    currentlyPlayingSound = widget.soundName;
     
     // Add back button functionality
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -108,6 +109,16 @@ class _BroadbandPageState extends State<BroadbandPage> {
     } else {
       await _audioPlayer.play();
     }
+  }
+
+  void _playSound(String soundName) async {
+    setState(() {
+      currentlyPlayingSound = soundName;
+    });
+    
+    String fileName = soundName.toLowerCase().replaceAll(' ', '_');
+    await _audioPlayer.setAsset('assets/broadband/$fileName.mp3');
+    await _audioPlayer.play();
   }
 
   @override
@@ -243,27 +254,40 @@ class _BroadbandPageState extends State<BroadbandPage> {
 
                       // Playlist Items
                       ...currentPlaylist.map((item) {
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2a2a3e),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                item,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w400,
+                        final isCurrentlyPlaying = currentlyPlayingSound == item;
+                        
+                        return GestureDetector(
+                          onTap: () => _playSound(item),  // 👈 ITO ANG MAGPAPA-PLAY!
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isCurrentlyPlaying 
+                                  ? const Color(0xFF4a148c)  // Purple pag tumutugtog
+                                  : const Color(0xFF2a2a3e),  // Dark gray pag hindi
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  isCurrentlyPlaying ? Icons.volume_up : Icons.play_circle_outline,
+                                  color: Colors.white70,
+                                  size: 20,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 12),
+                                Text(
+                                  item,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                    fontWeight: isCurrentlyPlaying ? FontWeight.w600 : FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         );
                       }),
