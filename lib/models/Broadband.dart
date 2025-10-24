@@ -160,10 +160,10 @@ class _BroadbandPageState extends State<BroadbandPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(24.0),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [
-                              const Color(0xFF4a148c),
-                              const Color(0xFF6a1b9a),
+                              Color(0xFF4a148c),
+                              Color(0xFF6a1b9a),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -207,7 +207,7 @@ class _BroadbandPageState extends State<BroadbandPage> {
                                 ),
                                 const SizedBox(width: 16),
                                 Container(
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),

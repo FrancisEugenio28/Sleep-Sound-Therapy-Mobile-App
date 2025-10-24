@@ -38,21 +38,21 @@ class SleepDataPageContent extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
+        gradient: const LinearGradient(
           colors: [
-            const Color(0xFF4a148c),
-            const Color(0xFF6a1b9a),
+            Color(0xFF4a148c),
+            Color(0xFF6a1b9a),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
+      child: const Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           Column(
-            children: const [
+            children: [
               Text(
                 '85%',
                 style: TextStyle(
@@ -70,7 +70,7 @@ class SleepDataPageContent extends StatelessWidget {
             ],
           ),
           Column(
-            children: const [
+            children: [
               Text(
                 '6.5 hrs',
                 style: TextStyle(
@@ -172,9 +172,9 @@ class SleepDataPageContent extends StatelessWidget {
   }
 
   Widget _buildLastNightSection() {
-    return Column(
+    return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
+      children: [
         Text(
           'Last Night\'s Sleep',
           style: TextStyle(
