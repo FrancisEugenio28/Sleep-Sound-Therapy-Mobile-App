@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'pages/LandingPage.dart';
-import 'pages/SleepData.dart';
-import 'pages/DiagnosticPage.dart';
+import 'pages/landing_page.dart';
+import 'pages/sleep_data.dart';
+import 'pages/diagnostic_page.dart';
+import 'pages/diagnostic_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -41,6 +42,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const MusicPageContent(),
     const SleepDataPageContent(),
     const DiagnosticPageContent(),
+    const DiagnosticScreenContent(),
   ];
 
   void _onItemTapped(int index) {

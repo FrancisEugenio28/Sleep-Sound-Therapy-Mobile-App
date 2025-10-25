@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
+import '../pages/diagnostic_screen.dart';
 
 class DiagnosticPageContent extends StatelessWidget {
   const DiagnosticPageContent({super.key});
@@ -15,10 +16,12 @@ class DiagnosticPageContent extends StatelessWidget {
               title: 'Smart Sleep',
               subtitle: 'Embedded Sound Therapy',
             ),
+            const Divider(color: Colors.white24, height: 1),
+            const SizedBox(height: 16.0),
 
             // Device Status Card
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 18.0),
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -239,7 +242,14 @@ class SystemFunctionButton extends StatelessWidget {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () {
+              // 🎯 NAVIGATION CODE ADDED HERE
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const DiagnosticScreenContent(), // Navigate to the new page
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4CAF50),
               padding: const EdgeInsets.symmetric(vertical: 16),
