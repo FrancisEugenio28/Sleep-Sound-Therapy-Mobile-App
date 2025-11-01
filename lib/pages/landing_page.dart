@@ -2,12 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
-import '../models/Broadband.dart';
-import '../models/Classical.dart';
-import '../models/Nature.dart';
-import '../models/Binaural.dart';
-import '../models/ASMR.dart';
-import '../models/Lullaby.dart';
+import '../models/sound_player.dart'; 
 
 class MusicPageContent extends StatefulWidget {
   const MusicPageContent({super.key});
@@ -21,7 +16,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
   bool isPlaying = false;
   double frequencyValue = 300.0;
   bool showSoundPlayer = false;
-  String selectedCategory = 'Broadband Noise'; 
+  String selectedCategory = 'Broadband Noise'; // Default
 
   final List<String> soundOptions = [
     'Broadband\nNoise',
@@ -35,81 +30,29 @@ class _MusicPageContentState extends State<MusicPageContent> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Set background color to match the player page
+      backgroundColor: const Color(0xFF1a1a2e), 
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 400),
           child: showSoundPlayer
-              ? _buildSoundPlayer()  
-              : _buildMusicOptionsView(),
+              ? _buildSoundPlayer()  // Shows the new player page
+              : _buildMusicOptionsView(), // Shows the grid menu
         ),
       ),
     );
   }
 
-  // Add this new function
-  Widget _buildSoundPlayer() {
-    // Check which category to show based on your logic
-    if (selectedCategory == 'Broadband Noise') {
-      return BroadbandPage(
-        key: const ValueKey('broadband'),
-        soundName: selectedSound.replaceAll('\n', ' '),
-        category: "Broadband Noise",
-        onBack: () {
-          setState(() => showSoundPlayer = false);
-        },
-      );
-    } else if (selectedCategory == 'Classical') {
-      return ClassicalPage(
-        key: const ValueKey('classical'),
-        soundName: selectedSound.replaceAll('\n', ' '),
-        category: "Classical",
-        onBack: () {
-          setState(() => showSoundPlayer = false);
-        },
-      );
-    } else if (selectedCategory == 'Nature Sound') {
-      return NaturePage(
-        key: const ValueKey('nature'),
-        soundName: selectedSound.replaceAll('\n', ' '),
-        category: "Nature Sound",
-        onBack: () {
-          setState(() => showSoundPlayer = false);
-        },
-      );
-    } else if (selectedCategory == 'Binaural Beats') {
-      return BinauralPage(
-        key: const ValueKey('binaural'),
-        soundName: selectedSound.replaceAll('\n', ' '),
-        category: "Binaural Beats",
-        onBack: () {
-          setState(() => showSoundPlayer = false);
-        },
-      );
-    } else if (selectedCategory == 'ASMR') {
-      return ASMRPage(
-        key: const ValueKey('asmr'),
-        soundName: selectedSound.replaceAll('\n', ' '),
-        category: "ASMR",
-        onBack: () {
-          setState(() => showSoundPlayer = false);
-        },
-      );
-    } else if (selectedCategory == 'Lullaby') {
-      return LullabyPage(
-        key: const ValueKey('lullaby'),
-        soundName: selectedSound.replaceAll('\n', ' '),
-        category: "Lullaby",
-        onBack: () {
-          setState(() => showSoundPlayer = false);
-        },
-      );
-    }
-    
-    // Default fallback
-    return BroadbandPage(
-      key: const ValueKey('broadband'),
+  Widget _buildSoundPlayer() { 
+    return SoundPlayerPage(
+      // Use a dynamic key so the page rebuilds if the category changes
+      key: ValueKey(selectedCategory), 
+  
+      // Pass the state variables directly
       soundName: selectedSound.replaceAll('\n', ' '),
-      category: "Broadband Noise",
+      category: selectedCategory, 
+      
+      // The onBack logic is the same: it just toggles the bool
       onBack: () {
         setState(() => showSoundPlayer = false);
       },
@@ -127,7 +70,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 🎵 Now Playing Card
+                // 🎵 Now Playing Card (This is the one on the main page)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24.0),
@@ -144,6 +87,8 @@ class _MusicPageContentState extends State<MusicPageContent> {
                       const Text('Now Playing',
                           style: TextStyle(fontSize: 14, color: Colors.white70)),
                       const SizedBox(height: 8),
+                      // This text is static, you can update it or 
+                      // connect it to a state variable if you want
                       const Text('Claude Debussy - Clair de Lune',
                           style: TextStyle(
                             fontSize: 16,
@@ -172,6 +117,10 @@ class _MusicPageContentState extends State<MusicPageContent> {
                             child: IconButton(
                               onPressed: () {
                                 setState(() => isPlaying = !isPlaying);
+                                // Note: This play button is separate from the one
+                                // on the player page. You'll need to link it to
+                                // an audio player instance for this page if you
+                                // want it to control playback here.
                               },
                               icon: Icon(
                                 isPlaying ? Icons.pause : Icons.play_arrow,
@@ -198,7 +147,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
 
                 const SizedBox(height: 32),
 
-                // 🎧 Select Sound
+                // Select Sound
                 const Text(
                   'Select Sound',
                   style: TextStyle(
@@ -209,7 +158,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
                 ),
                 const SizedBox(height: 16),
 
-                // 🟪 Sound Grid
+                // Sound Grid
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -222,32 +171,37 @@ class _MusicPageContentState extends State<MusicPageContent> {
                   itemCount: soundOptions.length,
                   itemBuilder: (context, index) {
                     final sound = soundOptions[index];
+                    // Clean both strings the same way for comparison
                     final isSelected = sound.replaceAll('\n', ' ') ==
                         selectedSound.replaceAll('\n', ' ');
 
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        selectedSound = sound;
-                        
-                        // Set the correct category based on what was clicked
-                        if (sound.contains('Broadband')) {
-                          selectedCategory = 'Broadband Noise';  
-                        } else if (sound.contains('Classical')) {
-                          selectedCategory = 'Classical';  
-                        } else if (sound.contains('Nature')) {
-                          selectedCategory = 'Nature Sound';  
-                        } else if (sound.contains('Binaural')) {
-                          selectedCategory = 'Binaural Beats';  
-                        } else if (sound.contains('ASMR')) {
-                          selectedCategory = 'ASMR';  
-                        } else if (sound.contains('Lullaby')) {
-                          selectedCategory = 'Lullaby';  
-                        }
-                        
-                        showSoundPlayer = true;  // Show player after setting category
-                      });
-                    },
+                    return InkWell(
+                      onTap: () {
+                        setState(() {
+                          // Set the sound name
+                          selectedSound = sound;
+                          
+                          // Set the category string
+                          // This logic correctly sets the category
+                          // for the SoundPlayerPage to use.
+                          if (sound.contains('Broadband')) {
+                            selectedCategory = 'Broadband Noise';  
+                          } else if (sound.contains('Classical')) {
+                            selectedCategory = 'Classical';  
+                          } else if (sound.contains('Nature')) {
+                            selectedCategory = 'Nature Sound';  
+                          } else if (sound.contains('Binaural')) {
+                            selectedCategory = 'Binaural Beats';  
+                          } else if (sound.contains('ASMR')) {
+                            selectedCategory = 'ASMR';  
+                          } else if (sound.contains('Lullaby')) {
+                            selectedCategory = 'Lullaby';  
+                          }
+                          
+                          // Show the player page
+                          showSoundPlayer = true;
+                        });
+                      },
                       child: Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF2a2a3e),
@@ -279,7 +233,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
 
                 const SizedBox(height: 32),
 
-                // 🔊 Frequency Section
+                // Frequency Section
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

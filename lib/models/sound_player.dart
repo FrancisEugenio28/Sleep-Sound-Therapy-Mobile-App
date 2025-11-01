@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import '../widgets/shared_header.dart';
+import '../widgets/shared_header.dart'; 
 
-class ClassicalPage extends StatefulWidget {
+class SoundPlayerPage extends StatefulWidget {
   final String soundName;
   final String category;
   final VoidCallback onBack;
 
-  const ClassicalPage({
+  const SoundPlayerPage({
     super.key,
     required this.soundName,
     required this.category,
@@ -15,79 +15,59 @@ class ClassicalPage extends StatefulWidget {
   });
 
   @override
-  State<ClassicalPage> createState() => _ClassicalPageState();
+  State<SoundPlayerPage> createState() => _SoundPlayerPageState();
 }
 
-class _ClassicalPageState extends State<ClassicalPage> {
+class _SoundPlayerPageState extends State<SoundPlayerPage> {
   late AudioPlayer _audioPlayer;
   bool isPlaying = false;
   String? currentlyPlayingSound;
-  String selectedCategory = 'Classical';
 
-  // Sample playlist for each noise type
+  // This map holds all playlists, just like before.
   final Map<String, List<String>> playlists = {
     'Broadband Noise': [
-      'White Noise',
-      'Pink Noise', 
-      'Brown Noise',
-      'Blue Noise',
-      'Violet Noise',
-      'Gray Noise',
-      'Black Noise',
+      'White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise',
+      'Violet Noise', 'Gray Noise', 'Black Noise',
     ],
     'Classical': [
-      'Clair de Lune',
-      'Moonlight Sonata',
-      'Für Elise',
-      'Canon in D',
-      'Air on G String',
+      'Clair de Lune', 'Moonlight Sonata', 'Für Elise',
+      'Canon in D', 'Air on G String',
     ],
     'Nature Sound': [
-      'Rain',
-      'Ocean Waves',
-      'Forest',
-      'Thunderstorm',
-      'River Stream',
+      'Rain', 'Ocean Waves', 'Forest', 'Thunderstorm', 'River Stream',
     ],
     'Binaural Beats': [
-      'Delta Waves',
-      'Theta Waves',
-      'Alpha Waves',
-      'Beta Waves',
-      'Gamma Waves',
+      'Delta Waves', 'Theta Waves', 'Alpha Waves', 'Beta Waves', 'Gamma Waves',
     ],
     'ASMR': [
-      'Whispers',
-      'Tapping',
-      'Brushing',
-      'Crinkling',
-      'Scratching',
+      'Whispers', 'Tapping', 'Brushing', 'Crinkling', 'Scratching',
     ],
     'Lullaby': [
-      'Twinkle Star',
-      'Brahms Lullaby',
-      'Rock-a-bye Baby',
-      'Hush Little Baby',
+      'Twinkle Star', 'Brahms Lullaby', 'Rock-a-bye Baby', 'Hush Little Baby',
     ],
+  };
+
+  // This map converts the category name to its asset folder name.
+  final Map<String, String> categoryAssetPaths = {
+    'Broadband Noise': 'broadband',
+    'Classical': 'classical',
+    'Nature Sound': 'nature',
+    'Binaural Beats': 'binaural',
+    'ASMR': 'asmr',
+    'Lullaby': 'lullaby',
   };
 
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
+    // Set the initial sound from the widget property
     currentlyPlayingSound = widget.soundName;
     
-    // Add back button functionality
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: widget.onBack,
-        ),
-      );
-    });
-    
-    // Listen to player state
+    // Start playing the initial sound
+    _playSound(widget.soundName, isInitialLoad: true);
+
+    // Listen to player state changes (e.g., when sound finishes)
     _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
         setState(() {
@@ -111,18 +91,39 @@ class _ClassicalPageState extends State<ClassicalPage> {
     }
   }
 
-  void _playSound(String soundName) async {
-    setState(() {
-      currentlyPlayingSound = soundName;
-    });
+  // This function now dynamically finds the asset folder
+  void _playSound(String soundName, {bool isInitialLoad = false}) async {
+    // Only update the state if it's a new sound (not the initial one)
+    if (!isInitialLoad) {
+       setState(() {
+        currentlyPlayingSound = soundName;
+      });
+    }
     
+    // Get the folder name from our map
+    String? categoryFolder = categoryAssetPaths[widget.category];
+    if (categoryFolder == null) {
+      // Handle error if category is not in our map
+      print("Error: No asset path for category '${widget.category}'");
+      return;
+    }
+
+    // Prepare the file name
     String fileName = soundName.toLowerCase().replaceAll(' ', '_');
-    await _audioPlayer.setAsset('assets/classical/$fileName.mp3');
-    await _audioPlayer.play();
+    
+    // Set the dynamic asset path
+    try {
+      await _audioPlayer.setAsset('assets/$categoryFolder/$fileName.mp3');
+      await _audioPlayer.play();
+    } catch (e) {
+      print("Error loading asset: $e");
+      // Handle error (e.g., show a snackbar)
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // This dynamically gets the correct playlist based on the widget's category
     final currentPlaylist = playlists[widget.category] ?? ['Unknown'];
     
     return Scaffold(
@@ -130,12 +131,11 @@ class _ClassicalPageState extends State<ClassicalPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header only
+            // Header
             const SharedHeader(
               title: 'Smart Sleep',
               subtitle: 'Embedded Sound Therapy',
             ),
-
             const Divider(color: Colors.white24, height: 1),
 
             // Back button
@@ -161,10 +161,7 @@ class _ClassicalPageState extends State<ClassicalPage> {
                         padding: const EdgeInsets.all(24.0),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [
-                              Color(0xFF4a148c),
-                              Color(0xFF6a1b9a),
-                            ],
+                            colors: [Color(0xFF4a148c), Color(0xFF6a1b9a)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -180,8 +177,9 @@ class _ClassicalPageState extends State<ClassicalPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
+                            // **FIXED:** This now updates when you click a new song
                             Text(
-                              '${widget.soundName} - ${widget.category}',
+                              '$currentlyPlayingSound - ${widget.category}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 16,
@@ -194,6 +192,7 @@ class _ClassicalPageState extends State<ClassicalPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                // ... (Your buttons: Shuffle, Skip, etc.) ...
                                 IconButton(
                                   onPressed: () {},
                                   icon: const Icon(Icons.shuffle, size: 28),
@@ -240,7 +239,7 @@ class _ClassicalPageState extends State<ClassicalPage> {
 
                       const SizedBox(height: 32),
 
-                      // Playlist Title
+                      // Playlist Title (also dynamic)
                       Text(
                         widget.category,
                         style: const TextStyle(
@@ -249,7 +248,6 @@ class _ClassicalPageState extends State<ClassicalPage> {
                           color: Colors.white,
                         ),
                       ),
-
                       const SizedBox(height: 16),
 
                       // Playlist Items
@@ -257,7 +255,7 @@ class _ClassicalPageState extends State<ClassicalPage> {
                         final isCurrentlyPlaying = currentlyPlayingSound == item;
                         
                         return GestureDetector(
-                          onTap: () => _playSound(item),  // 👈 ITO ANG MAGPAPA-PLAY!
+                          onTap: () => _playSound(item), // Plays the new sound
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.symmetric(
@@ -266,8 +264,8 @@ class _ClassicalPageState extends State<ClassicalPage> {
                             ),
                             decoration: BoxDecoration(
                               color: isCurrentlyPlaying 
-                                  ? const Color(0xFF4a148c)  // Purple pag tumutugtog
-                                  : const Color(0xFF2a2a3e),  // Dark gray pag hindi
+                                  ? const Color(0xFF4a148c)
+                                  : const Color(0xFF2a2a3e),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Row(
