@@ -23,7 +23,6 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
   bool isPlaying = false;
   String? currentlyPlayingSound;
 
-  // This map holds all playlists, just like before.
   final Map<String, List<String>> playlists = {
     'Broadband Noise': [
       'White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise',
@@ -40,14 +39,13 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
       'Delta Waves', 'Theta Waves', 'Alpha Waves', 'Beta Waves', 'Gamma Waves',
     ],
     'ASMR': [
-      'Whispers', 'Tapping', 'Brushing', 'Crinkling', 'Scratching',
+      'Tapping', 'Brushing', 'Crinkling', 'Scratching',
     ],
     'Lullaby': [
       'Twinkle Star', 'Brahms Lullaby', 'Rock-a-bye Baby', 'Hush Little Baby',
     ],
   };
 
-  // This map converts the category name to its asset folder name.
   final Map<String, String> categoryAssetPaths = {
     'Broadband Noise': 'broadband',
     'Classical': 'classical',
@@ -61,13 +59,14 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
-    // Set the initial sound from the widget property
-    currentlyPlayingSound = widget.soundName;
-    
-    // Start playing the initial sound
-    _playSound(widget.soundName, isInitialLoad: true);
 
-    // Listen to player state changes (e.g., when sound finishes)
+    final currentPlaylist = playlists[widget.category] ?? ['Unknown'];
+    String initialSound = currentPlaylist.isNotEmpty ? currentPlaylist[0] : 'Unknown';
+    
+    currentlyPlayingSound = initialSound; 
+    
+    _playSound(initialSound, isInitialLoad: true);
+
     _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
         setState(() {
@@ -91,39 +90,33 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
     }
   }
 
-  // This function now dynamically finds the asset folder
   void _playSound(String soundName, {bool isInitialLoad = false}) async {
-    // Only update the state if it's a new sound (not the initial one)
     if (!isInitialLoad) {
        setState(() {
         currentlyPlayingSound = soundName;
       });
     }
     
-    // Get the folder name from our map
+    await _audioPlayer.stop();
+
     String? categoryFolder = categoryAssetPaths[widget.category];
     if (categoryFolder == null) {
-      // Handle error if category is not in our map
       print("Error: No asset path for category '${widget.category}'");
       return;
     }
 
-    // Prepare the file name
     String fileName = soundName.toLowerCase().replaceAll(' ', '_');
     
-    // Set the dynamic asset path
     try {
       await _audioPlayer.setAsset('assets/$categoryFolder/$fileName.mp3');
       await _audioPlayer.play();
     } catch (e) {
-      print("Error loading asset: $e");
-      // Handle error (e.g., show a snackbar)
+      print("Error loading asset '$fileName.mp3': $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // This dynamically gets the correct playlist based on the widget's category
     final currentPlaylist = playlists[widget.category] ?? ['Unknown'];
     
     return Scaffold(
@@ -131,14 +124,12 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             const SharedHeader(
               title: 'Smart Sleep',
               subtitle: 'Embedded Sound Therapy',
             ),
             const Divider(color: Colors.white24, height: 1),
 
-            // Back button
             Align(
               alignment: Alignment.centerLeft,
               child: IconButton(
@@ -147,7 +138,6 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
               ),
             ),
 
-            // Main Content
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
@@ -155,7 +145,6 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Now Playing Card
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(24.0),
@@ -177,7 +166,6 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            // **FIXED:** This now updates when you click a new song
                             Text(
                               '$currentlyPlayingSound - ${widget.category}',
                               textAlign: TextAlign.center,
@@ -188,11 +176,9 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                               ),
                             ),
                             const SizedBox(height: 22),
-                            // Player Controls
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // ... (Your buttons: Shuffle, Skip, etc.) ...
                                 IconButton(
                                   onPressed: () {},
                                   icon: const Icon(Icons.shuffle, size: 28),
@@ -239,7 +225,6 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
 
                       const SizedBox(height: 32),
 
-                      // Playlist Title (also dynamic)
                       Text(
                         widget.category,
                         style: const TextStyle(
@@ -250,12 +235,11 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Playlist Items
                       ...currentPlaylist.map((item) {
                         final isCurrentlyPlaying = currentlyPlayingSound == item;
                         
                         return GestureDetector(
-                          onTap: () => _playSound(item), // Plays the new sound
+                          onTap: () => _playSound(item),
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.symmetric(

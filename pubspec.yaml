@@ -50,3 +50,8 @@ flutter:
   # Asset declaration is correct for the audio files
   assets:
     - assets/broadband/
+    - assets/classical/
+    - assets/nature/
+    - assets/binaural/
+    - assets/asmr/
+    - assets/lullaby/
