@@ -1,17 +1,27 @@
+// lib/sound_player.dart
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import '../widgets/shared_header.dart'; 
 
 class SoundPlayerPage extends StatefulWidget {
-  final String soundName;
   final String category;
+  final bool isPlaying;
+  final String currentlyPlayingSound;
   final VoidCallback onBack;
+  final VoidCallback onTogglePlayPause;
+  final Function(String soundName) onPlaySound;
+  final VoidCallback onPlayNext;
+  final VoidCallback onPlayPrevious;
 
   const SoundPlayerPage({
     super.key,
-    required this.soundName,
     required this.category,
+    required this.isPlaying,
+    required this.currentlyPlayingSound,
     required this.onBack,
+    required this.onTogglePlayPause,
+    required this.onPlaySound,
+    required this.onPlayNext,
+    required this.onPlayPrevious,
   });
 
   @override
@@ -19,10 +29,11 @@ class SoundPlayerPage extends StatefulWidget {
 }
 
 class _SoundPlayerPageState extends State<SoundPlayerPage> {
-  late AudioPlayer _audioPlayer;
-  bool isPlaying = false;
-  String? currentlyPlayingSound;
+  // --- All player logic is GONE ---
+  // No AudioPlayer, no isPlaying, no currentlyPlayingSound
+  // No initState, no dispose, no _playSound, no _togglePlayPause
 
+  // This page still needs the list of sounds to display it
   final Map<String, List<String>> playlists = {
     'Broadband Noise': [
       'White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise',
@@ -45,78 +56,11 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
       'Twinkle Star', 'Brahms Lullaby', 'Rock-a-bye Baby', 'Hush Little Baby',
     ],
   };
-
-  final Map<String, String> categoryAssetPaths = {
-    'Broadband Noise': 'broadband',
-    'Classical': 'classical',
-    'Nature Sound': 'nature',
-    'Binaural Beats': 'binaural',
-    'ASMR': 'asmr',
-    'Lullaby': 'lullaby',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _audioPlayer = AudioPlayer();
-
-    final currentPlaylist = playlists[widget.category] ?? ['Unknown'];
-    String initialSound = currentPlaylist.isNotEmpty ? currentPlaylist[0] : 'Unknown';
-    
-    currentlyPlayingSound = initialSound; 
-    
-    _playSound(initialSound, isInitialLoad: true);
-
-    _audioPlayer.playerStateStream.listen((state) {
-      if (mounted) {
-        setState(() {
-          isPlaying = state.playing;
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
-
-  void _togglePlayPause() async {
-    if (isPlaying) {
-      await _audioPlayer.pause();
-    } else {
-      await _audioPlayer.play();
-    }
-  }
-
-  void _playSound(String soundName, {bool isInitialLoad = false}) async {
-    if (!isInitialLoad) {
-       setState(() {
-        currentlyPlayingSound = soundName;
-      });
-    }
-    
-    await _audioPlayer.stop();
-
-    String? categoryFolder = categoryAssetPaths[widget.category];
-    if (categoryFolder == null) {
-      print("Error: No asset path for category '${widget.category}'");
-      return;
-    }
-
-    String fileName = soundName.toLowerCase().replaceAll(' ', '_');
-    
-    try {
-      await _audioPlayer.setAsset('assets/$categoryFolder/$fileName.mp3');
-      await _audioPlayer.play();
-    } catch (e) {
-      print("Error loading asset '$fileName.mp3': $e");
-    }
-  }
+  
 
   @override
   Widget build(BuildContext context) {
+    // We get the playlist from our local map
     final currentPlaylist = playlists[widget.category] ?? ['Unknown'];
     
     return Scaffold(
@@ -134,6 +78,7 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
               alignment: Alignment.centerLeft,
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
+                // It just calls the onBack function from the parent
                 onPressed: widget.onBack,
               ),
             ),
@@ -147,6 +92,7 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                     children: [
                       Container(
                         width: double.infinity,
+                        // ... (decoration is the same) ...
                         padding: const EdgeInsets.all(24.0),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
@@ -166,8 +112,9 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
+                            // It uses the STATE from the parent
                             Text(
-                              '$currentlyPlayingSound - ${widget.category}',
+                              '${widget.currentlyPlayingSound} - ${widget.category}',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 fontSize: 16,
@@ -180,13 +127,8 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.shuffle, size: 28),
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 16),
-                                IconButton(
-                                  onPressed: () {},
+                                  // It calls the FUNCTION from the parent
+                                  onPressed: widget.onPlayPrevious,
                                   icon: const Icon(Icons.skip_previous, size: 32),
                                   color: Colors.white,
                                 ),
@@ -197,9 +139,11 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
-                                    onPressed: _togglePlayPause,
+                                    // It calls the FUNCTION from the parent
+                                    onPressed: widget.onTogglePlayPause,
                                     icon: Icon(
-                                      isPlaying ? Icons.pause : Icons.play_arrow,
+                                      // It uses the STATE from the parent
+                                      widget.isPlaying ? Icons.pause : Icons.play_arrow,
                                       size: 32,
                                     ),
                                     color: const Color(0xFF4a148c),
@@ -207,16 +151,12 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                                 ),
                                 const SizedBox(width: 16),
                                 IconButton(
-                                  onPressed: () {},
+                                  // It calls the FUNCTION from the parent
+                                  onPressed: widget.onPlayNext,
                                   icon: const Icon(Icons.skip_next, size: 32),
                                   color: Colors.white,
                                 ),
                                 const SizedBox(width: 16),
-                                IconButton(
-                                  onPressed: () {},
-                                  icon: const Icon(Icons.repeat, size: 28),
-                                  color: Colors.white,
-                                ),
                               ],
                             ),
                           ],
@@ -236,10 +176,12 @@ class _SoundPlayerPageState extends State<SoundPlayerPage> {
                       const SizedBox(height: 16),
 
                       ...currentPlaylist.map((item) {
-                        final isCurrentlyPlaying = currentlyPlayingSound == item;
+                        // It highlights based on STATE from the parent
+                        final isCurrentlyPlaying = widget.currentlyPlayingSound == item;
                         
                         return GestureDetector(
-                          onTap: () => _playSound(item),
+                          // It calls the FUNCTION from the parent
+                          onTap: () => widget.onPlaySound(item),
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.symmetric(
