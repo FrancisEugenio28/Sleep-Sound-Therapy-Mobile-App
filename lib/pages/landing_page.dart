@@ -1,10 +1,11 @@
-// lib/landing_page.dart
 import 'package:flutter/material.dart';
-import '../widgets/shared_header.dart';
-import 'package:syncfusion_flutter_sliders/sliders.dart';
-import 'package:rive_animated_icon/rive_animated_icon.dart';
-import '../models/sound_player.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'; // Add this
 import 'package:just_audio/just_audio.dart';
+import 'package:rive_animated_icon/rive_animated_icon.dart';
+import 'package:syncfusion_flutter_sliders/sliders.dart';
+import '../widgets/shared_header.dart';
+import '../models/sound_player.dart';
+import '../bluetooth_controller.dart'; // Add this import
 
 class MusicPageContent extends StatefulWidget {
   const MusicPageContent({super.key});
@@ -17,30 +18,22 @@ class _MusicPageContentState extends State<MusicPageContent> {
   late AudioPlayer _audioPlayer;
   bool isPlaying = false;
   String? currentlyPlayingSound;
-  String currentCategory = 'Broadband Noise'; // Default category
+  String currentCategory = 'Broadband Noise'; 
   bool showSoundPlayer = false;
 
+  // 1. Initialize Bluetooth Controller
+  final BluetoothController _btController = BluetoothController();
+
+  // Frequency/Volume Value
+  double frequencyValue = 50.0; // Default to 50% volume
+
   final Map<String, List<String>> playlists = {
-    'Broadband Noise': [
-      'White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise',
-      'Violet Noise', 'Gray Noise', 'Black Noise',
-    ],
-    'Classical': [
-      'Clair de Lune', 'Moonlight Sonata', 'Für Elise',
-      'Canon in D', 'Air on G String',
-    ],
-    'Nature Sound': [
-      'Rain', 'Ocean Waves', 'Forest', 'Thunderstorm', 'River Stream',
-    ],
-    'Binaural Beats': [
-      'Delta Waves', 'Theta Waves', 'Alpha Waves', 'Beta Waves', 'Gamma Waves',
-    ],
-    'ASMR': [
-      'Tapping', 'Brushing', 'Crinkling', 'Scratching',
-    ],
-    'Lullaby': [
-      'Twinkle Star', 'Brahms Lullaby', 'Rock-a-bye Baby', 'Hush Little Baby',
-    ],
+    'Broadband Noise': ['White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise', 'Violet Noise', 'Gray Noise', 'Black Noise'],
+    'Classical': ['Clair de Lune', 'Moonlight Sonata', 'Für Elise', 'Canon in D', 'Air on G String'],
+    'Nature Sound': ['Rain', 'Ocean Waves', 'Forest', 'Thunderstorm', 'River Stream'],
+    'Binaural Beats': ['Delta Waves', 'Theta Waves', 'Alpha Waves', 'Beta Waves', 'Gamma Waves'],
+    'ASMR': ['Tapping', 'Brushing', 'Crinkling', 'Scratching'],
+    'Lullaby': ['Twinkle Star', 'Brahms Lullaby', 'Rock-a-bye Baby', 'Hush Little Baby'],
   };
 
   final Map<String, String> categoryAssetPaths = {
@@ -53,22 +46,15 @@ class _MusicPageContentState extends State<MusicPageContent> {
   };
 
   final List<String> soundOptions = [
-    'Broadband\nNoise',
-    'Classical',
-    'Nature\nSound',
-    'Binaural\nBeats',
-    'ASMR',
-    'Lullaby',
+    'Broadband\nNoise', 'Classical', 'Nature\nSound',
+    'Binaural\nBeats', 'ASMR', 'Lullaby',
   ];
 
-  double frequencyValue = 300.0;
-  
   @override
   void initState() {
     super.initState();
     _audioPlayer = AudioPlayer();
 
-    // Listen to the player state
     _audioPlayer.playerStateStream.listen((state) {
       if (mounted) {
         setState(() {
@@ -76,8 +62,6 @@ class _MusicPageContentState extends State<MusicPageContent> {
         });
       }
     });
-
-    // Automatically loop all sounds
     _audioPlayer.setLoopMode(LoopMode.one);
   }
 
@@ -87,11 +71,66 @@ class _MusicPageContentState extends State<MusicPageContent> {
     super.dispose();
   }
 
+  // 2. Connection Dialog Logic
+  void _showConnectionDialog() async {
+    await _btController.initPermissions();
+    // Get list of paired devices
+    List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF232b47),
+        title: const Text("Connect to Device", style: TextStyle(color: Colors.white)),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 200,
+          child: devices.isEmpty 
+            ? const Center(child: Text("No paired devices found.\nPlease pair in Android Settings first.", style: TextStyle(color: Colors.white70)))
+            : ListView.builder(
+                itemCount: devices.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(devices[index].name ?? "Unknown", style: const TextStyle(color: Colors.white)),
+                    subtitle: Text(devices[index].address, style: const TextStyle(color: Colors.white70)),
+                    trailing: const Icon(Icons.link, color: Colors.white54),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Connecting...")),
+                      );
+                      
+                      bool success = await _btController.connect(devices[index]);
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(success ? "Connected to ${devices[index].name}!" : "Connection Failed"),
+                            backgroundColor: success ? Colors.green : Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close", style: TextStyle(color: Colors.white54)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _togglePlayPause() async {
     if (isPlaying) {
       await _audioPlayer.pause();
     } else {
-      // Only play if a sound is loaded
       if (_audioPlayer.processingState != ProcessingState.idle) {
         await _audioPlayer.play();
       }
@@ -105,40 +144,31 @@ class _MusicPageContentState extends State<MusicPageContent> {
     });
 
     await _audioPlayer.stop();
-
     String? categoryFolder = categoryAssetPaths[category];
-    if (categoryFolder == null) {
-      print("Error: No asset path for category '$category'");
-      return;
-    }
+    if (categoryFolder == null) return;
 
     String fileName = soundName.toLowerCase().replaceAll(' ', '_');
-    
     try {
       await _audioPlayer.setAsset('assets/$categoryFolder/$fileName.mp3');
       await _audioPlayer.play();
     } catch (e) {
-      print("Error loading asset '$fileName.mp3': $e");
+      print("Error loading asset: $e");
     }
   }
 
   void _playNext() {
     final currentPlaylist = playlists[currentCategory] ?? [];
     if (currentPlaylist.isEmpty || currentlyPlayingSound == null) return;
-
     int currentIndex = currentPlaylist.indexOf(currentlyPlayingSound!);
-    int nextIndex = (currentIndex + 1) % currentPlaylist.length; // Wrap around
-    
+    int nextIndex = (currentIndex + 1) % currentPlaylist.length;
     _playSound(currentPlaylist[nextIndex], currentCategory);
   }
 
   void _playPrevious() {
     final currentPlaylist = playlists[currentCategory] ?? [];
     if (currentPlaylist.isEmpty || currentlyPlayingSound == null) return;
-
     int currentIndex = currentPlaylist.indexOf(currentlyPlayingSound!);
-    int prevIndex = (currentIndex - 1 + currentPlaylist.length) % currentPlaylist.length; // Wrap around
-    
+    int prevIndex = (currentIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
     _playSound(currentPlaylist[prevIndex], currentCategory);
   }
 
@@ -157,43 +187,49 @@ class _MusicPageContentState extends State<MusicPageContent> {
     );
   }
 
-  // This widget now just passes state DOWN
   Widget _buildSoundPlayer() { 
     return SoundPlayerPage(
       key: ValueKey(currentCategory), 
-      
-      // Pass all the state and controls to the child page
       category: currentCategory,
       isPlaying: isPlaying,
       currentlyPlayingSound: currentlyPlayingSound ?? '',
-      
-      onBack: () {
-        // This just hides the player, it DOES NOT stop the music
-        setState(() => showSoundPlayer = false);
-      },
+      onBack: () => setState(() => showSoundPlayer = false),
       onTogglePlayPause: _togglePlayPause,
-      onPlaySound: (soundName) {
-        // The child page calls this function to play a new sound
-        _playSound(soundName, currentCategory);
-      },
+      onPlaySound: (soundName) => _playSound(soundName, currentCategory),
       onPlayNext: _playNext,
       onPlayPrevious: _playPrevious,
     );
   }
 
-  // This widget now reflects the *actual* player state
   Widget _buildMusicOptionsView() {
     return Column(
       children: [
-        // Using a custom header name, update if needed
-        const SharedHeader(title: 'Smart Sleep', subtitle: 'Embedded Sound Therapy'),
+        // HEADER WITH BLUETOOTH BUTTON
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Row(
+            children: [
+              const Expanded(
+                child: SharedHeader(title: 'Smart Sleep', subtitle: 'Embedded Sound Therapy'),
+              ),
+              IconButton(
+                icon: const Icon(Icons.bluetooth, color: Colors.white),
+                tooltip: "Connect to Device",
+                onPressed: _showConnectionDialog, // Opens the list
+              ),
+              const SizedBox(width: 10),
+            ],
+          ),
+        ),
         const Divider(color: Colors.white24, height: 1),
+        
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(20.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Now Playing Card
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(24.0),
@@ -207,52 +243,31 @@ class _MusicPageContentState extends State<MusicPageContent> {
                   ),
                   child: Column(
                     children: [
-                      const Text('Now Playing',
-                          style: TextStyle(fontSize: 14, color: Colors.white70)),
+                      const Text('Now Playing', style: TextStyle(fontSize: 14, color: Colors.white70)),
                       const SizedBox(height: 8),
-                      // It uses the REAL state variables
                       Text(
                         currentlyPlayingSound != null 
                           ? '$currentlyPlayingSound - $currentCategory'
                           : 'Nothing Playing',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: const TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          IconButton(
-                              onPressed: _playPrevious,
-                              icon: const Icon(Icons.skip_previous, size: 32),
-                              color: Colors.white),
+                          IconButton(onPressed: _playPrevious, icon: const Icon(Icons.skip_previous, size: 32), color: Colors.white),
                           const SizedBox(width: 16),
                           Container(
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                            ),
+                            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                             child: IconButton(
-                              // It calls the REAL toggle function
                               onPressed: _togglePlayPause,
-                              icon: Icon(
-                                // It uses the REAL isPlaying state
-                                isPlaying ? Icons.pause : Icons.play_arrow,
-                                size: 32,
-                              ),
+                              icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow, size: 32),
                               color: const Color(0xFF4a148c),
                             ),
                           ),
                           const SizedBox(width: 16),
-                          IconButton(
-                              onPressed: _playNext,
-                              icon: const Icon(Icons.skip_next, size: 32),
-                              color: Colors.white),
-                          const SizedBox(width: 16),
+                          IconButton(onPressed: _playNext, icon: const Icon(Icons.skip_next, size: 32), color: Colors.white),
                         ],
                       ),
                     ],
@@ -278,30 +293,23 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     final sound = soundOptions[index];
                     final categoryString = sound.replaceAll('\n', ' ');
                     
-                    // Determine what the full category name is
-                    String categoryForThisItem = 'Broadband Noise'; // Default
+                    String categoryForThisItem = 'Broadband Noise'; 
                     if (categoryString.contains('Classical')) categoryForThisItem = 'Classical';
                     else if (categoryString.contains('Nature')) categoryForThisItem = 'Nature Sound';
                     else if (categoryString.contains('Binaural')) categoryForThisItem = 'Binaural Beats';
                     else if (categoryString.contains('ASMR')) categoryForThisItem = 'ASMR';
                     else if (categoryString.contains('Lullaby')) categoryForThisItem = 'Lullaby';
 
-                    // Check if this category is the one currently playing
                     final isSelected = categoryForThisItem == currentCategory;
 
                     return InkWell(
                       onTap: () {
-                        // When tapped, update the state
                         setState(() {
                           currentCategory = categoryForThisItem;
-                          // If no sound is playing from this category,
-                          // play the first one.
                           if (currentlyPlayingSound == null || !playlists[currentCategory]!.contains(currentlyPlayingSound)) {
                             final firstSound = playlists[currentCategory]![0];
                             _playSound(firstSound, currentCategory);
                           }
-                          
-                          // Show the player page
                           showSoundPlayer = true;
                         });
                       },
@@ -310,9 +318,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
                           color: const Color(0xFF2a2a3e),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isSelected && isPlaying
-                                ? const Color(0xFF6a1b9a)
-                                : Colors.transparent,
+                            color: isSelected && isPlaying ? const Color(0xFF6a1b9a) : Colors.transparent,
                             width: 2,
                           ),
                         ),
@@ -323,9 +329,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
                             style: TextStyle(
                               fontSize: 15,
                               color: Colors.white,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                             ),
                           ),
                         ),
@@ -333,21 +337,17 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     );
                   },
                 ),
-                // ... (Frequency Slider remains unchanged) ...
+
                 const SizedBox(height: 32),
+                
+                // VOLUME CONTROL (Mapped to ESP32)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Frequency',
-                        style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white)),
-                    Text('${frequencyValue.toStringAsFixed(0)} Hz',
-                        style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6a1b9a),
-                            fontWeight: FontWeight.w600)),
+                    const Text('Device Volume', // Changed label
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text('${frequencyValue.toInt()}%', 
+                        style: const TextStyle(fontSize: 14, color: Color(0xFF6a1b9a), fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -362,13 +362,12 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     ),
                     Expanded(
                       child: SfSlider(
-                        min: 50.0,
-                        max: 500.0,
+                        min: 0.0,
+                        max: 100.0, // Correct range for ESP32 Volume
                         value: frequencyValue,
-                        interval: 50,
-                        stepSize: 50,
+                        interval: 20,
                         showTicks: true,
-                        showLabels: true,
+                        showLabels: false,
                         enableTooltip: true,
                         activeColor: const Color(0xFF6a1b9a),
                         inactiveColor: Colors.white24,
@@ -376,6 +375,8 @@ class _MusicPageContentState extends State<MusicPageContent> {
                           setState(() {
                             frequencyValue = value;
                           });
+                          // SEND TO ESP32
+                          _btController.sendCommand("VOL:${value.toInt()}");
                         },
                       ),
                     ),
