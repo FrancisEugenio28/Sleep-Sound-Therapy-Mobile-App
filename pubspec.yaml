@@ -34,6 +34,12 @@ dependencies:
   just_audio_background: ^0.0.1-beta.17
   audio_service: ^0.18.18
 
+  # bluetooth and device discovery
+  flutter_bluetooth_serial: ^0.4.0
+
+  # handler
+  permission_handler: ^10.4.0
+
 
 dev_dependencies:
   flutter_test:

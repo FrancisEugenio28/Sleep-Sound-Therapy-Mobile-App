@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart'; // Add this
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import '../widgets/shared_header.dart';
 import '../models/sound_player.dart';
-import '../bluetooth_controller.dart'; // Add this import
+import '../bluetooth_controller.dart'; 
 
 class MusicPageContent extends StatefulWidget {
   const MusicPageContent({super.key});
