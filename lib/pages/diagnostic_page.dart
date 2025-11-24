@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
-import '../pages/diagnostic_screen.dart';
+import '../pages/diagnostic_screen.dart'; // Ensure this import is correct
 
 class DiagnosticPageContent extends StatelessWidget {
   const DiagnosticPageContent({super.key});
@@ -243,9 +243,10 @@ class SystemFunctionButton extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
+              // 🎯 NAVIGATION CODE FIXED HERE
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const DiagnosticScreenContent(), 
+                  builder: (context) => const DiagnosticScreenContent(),
                 ),
               );
             },

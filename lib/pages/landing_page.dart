@@ -371,11 +371,14 @@ class _MusicPageContentState extends State<MusicPageContent> {
                         enableTooltip: true,
                         activeColor: const Color(0xFF6a1b9a),
                         inactiveColor: Colors.white24,
+                        // OPTIMIZED: Update UI instantly, but send command only on release
                         onChanged: (dynamic value) {
                           setState(() {
                             frequencyValue = value;
                           });
-                          // SEND TO ESP32
+                        },
+                        onChangeEnd: (dynamic value) {
+                          // SEND TO ESP32 Only when user stops dragging
                           _btController.sendCommand("VOL:${value.toInt()}");
                         },
                       ),

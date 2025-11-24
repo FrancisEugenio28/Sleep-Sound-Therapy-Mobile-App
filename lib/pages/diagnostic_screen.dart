@@ -101,7 +101,7 @@ class _DiagnosticScreenContentState extends State<DiagnosticScreenContent> {
 
       // BATTERY CHECK (Response: "DIAG:Battery:3.75V")
       if (message.startsWith("DIAG:Battery:")) {
-        String volts = message.split(":")[2];
+        String volts = message.split(":")[2].trim(); // Fix: Added trim()
         setState(() {
           _batteryStatus = "Good ($volts)";
           _battColor = _primaryGreen;

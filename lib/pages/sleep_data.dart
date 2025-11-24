@@ -37,48 +37,52 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
   }
 
   void _listenToBluetooth() {
-  _streamSubscription = _btController.dataStream.listen((message) {
-    if (!mounted) return;
+    _streamSubscription = _btController.dataStream.listen((message) {
+      if (!mounted) return;
 
-    if (message.startsWith("DATA:")) {
-      try {
-        // Remove "DATA:" and trim whitespace
-        String cleanData = message.substring(5).trim(); 
-        List<String> parts = cleanData.split('|');
+      // Expected Format from ESP32: 
+      // DATA:12:00:00|YES|1800|45000|50
+      // Time | Motion | SleepSeconds | MicLevel | Volume
 
-        // Ensure we have at least 4 parts before accessing index 3
-        if (parts.length >= 4) {
-          String rawTime = parts[0].trim();
-          String rawMotion = parts[1].trim();
-          // diverse parsing for safer integer conversion
-          int secondsLeft = int.tryParse(parts[2].trim()) ?? 0; 
-          String rawMic = parts[3].trim();
+      if (message.startsWith("DATA:")) {
+        try {
+          String cleanData = message.substring(5).trim(); // Remove "DATA:" & whitespace
+          List<String> parts = cleanData.split('|');
 
-          setState(() {
-            _systemTime = rawTime;
-            
-            if (rawMotion == "YES") {
-              _motionStatus = "DETECTED";
-              _motionColor = Colors.redAccent;
-            } else {
-              _motionStatus = "None";
-              _motionColor = const Color(0xFF4CAF50);
-            }
+          // Safety Check: Ensure we have enough parts
+          if (parts.length >= 4) {
+            String rawTime = parts[0].trim();
+            String rawMotion = parts[1].trim();
+            int secondsLeft = int.tryParse(parts[2].trim()) ?? 0;
+            String rawMic = parts[3].trim();
 
-            int mins = secondsLeft ~/ 60;
-            int secs = secondsLeft % 60;
-            // Pad seconds with 0 (e.g., "5:04" instead of "5:4")
-            _sleepTimer = "${mins}m ${secs.toString().padLeft(2, '0')}s";
+            setState(() {
+              _systemTime = rawTime;
+              
+              // Motion Logic
+              if (rawMotion == "YES") {
+                _motionStatus = "DETECTED";
+                _motionColor = Colors.redAccent;
+              } else {
+                _motionStatus = "None";
+                _motionColor = const Color(0xFF4CAF50); // Green
+              }
 
-            _micLevel = rawMic;
-          });
+              // Timer Logic (Convert seconds to Mins:Secs)
+              int mins = secondsLeft ~/ 60;
+              int secs = secondsLeft % 60;
+              // PadLeft ensures "5:04" instead of "5:4"
+              _sleepTimer = "${mins}m ${secs.toString().padLeft(2, '0')}s";
+
+              _micLevel = rawMic;
+            });
+          }
+        } catch (e) {
+          print("Parse Error: $e");
         }
-      } catch (e) {
-        print("Parse Error: $e");
       }
-    }
-  });
-}
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,12 +103,12 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 1. Real-Time Monitor Card (The New Part)
+                    // 1. Real-Time Monitor Card
                     _buildRealTimeMonitor(),
                     
                     const SizedBox(height: 24),
                     
-                    // 2. Static Stats (Placeholder for historical data)
+                    // 2. Static Stats
                     _buildStatsCard(),
                     
                     const SizedBox(height: 24),
