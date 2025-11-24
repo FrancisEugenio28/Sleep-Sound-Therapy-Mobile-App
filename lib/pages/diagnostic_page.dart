@@ -243,10 +243,9 @@ class SystemFunctionButton extends StatelessWidget {
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              // 🎯 NAVIGATION CODE ADDED HERE
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const DiagnosticScreenContent(), // Navigate to the new page
+                  builder: (context) => const DiagnosticScreenContent(), 
                 ),
               );
             },

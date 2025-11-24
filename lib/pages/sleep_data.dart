@@ -37,50 +37,48 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
   }
 
   void _listenToBluetooth() {
-    _streamSubscription = _btController.dataStream.listen((message) {
-      if (!mounted) return;
+  _streamSubscription = _btController.dataStream.listen((message) {
+    if (!mounted) return;
 
-      // Expected Format from ESP32: 
-      // DATA:12:00:00|YES|1800|45000|50
-      // Time | Motion | SleepSeconds | MicLevel | Volume
+    if (message.startsWith("DATA:")) {
+      try {
+        // Remove "DATA:" and trim whitespace
+        String cleanData = message.substring(5).trim(); 
+        List<String> parts = cleanData.split('|');
 
-      if (message.startsWith("DATA:")) {
-        try {
-          String cleanData = message.substring(5); // Remove "DATA:"
-          List<String> parts = cleanData.split('|');
+        // Ensure we have at least 4 parts before accessing index 3
+        if (parts.length >= 4) {
+          String rawTime = parts[0].trim();
+          String rawMotion = parts[1].trim();
+          // diverse parsing for safer integer conversion
+          int secondsLeft = int.tryParse(parts[2].trim()) ?? 0; 
+          String rawMic = parts[3].trim();
 
-          if (parts.length >= 4) {
-            String rawTime = parts[0];
-            String rawMotion = parts[1];
-            int secondsLeft = int.tryParse(parts[2]) ?? 0;
-            String rawMic = parts[3];
+          setState(() {
+            _systemTime = rawTime;
+            
+            if (rawMotion == "YES") {
+              _motionStatus = "DETECTED";
+              _motionColor = Colors.redAccent;
+            } else {
+              _motionStatus = "None";
+              _motionColor = const Color(0xFF4CAF50);
+            }
 
-            setState(() {
-              _systemTime = rawTime;
-              
-              // Motion Logic
-              if (rawMotion == "YES") {
-                _motionStatus = "DETECTED";
-                _motionColor = Colors.redAccent;
-              } else {
-                _motionStatus = "None";
-                _motionColor = const Color(0xFF4CAF50); // Green
-              }
+            int mins = secondsLeft ~/ 60;
+            int secs = secondsLeft % 60;
+            // Pad seconds with 0 (e.g., "5:04" instead of "5:4")
+            _sleepTimer = "${mins}m ${secs.toString().padLeft(2, '0')}s";
 
-              // Timer Logic (Convert seconds to Mins:Secs)
-              int mins = secondsLeft ~/ 60;
-              int secs = secondsLeft % 60;
-              _sleepTimer = "${mins}m ${secs}s";
-
-              _micLevel = rawMic;
-            });
-          }
-        } catch (e) {
-          print("Parse Error: $e");
+            _micLevel = rawMic;
+          });
         }
+      } catch (e) {
+        print("Parse Error: $e");
       }
-    });
-  }
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {
