@@ -1,17 +1,103 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../widgets/shared_header.dart';
-import '../pages/diagnostic_screen.dart'; // Ensure this import is correct
+import '../pages/diagnostic_screen.dart';
+import '../bluetooth_controller.dart'; // Import controller
 
-class DiagnosticPageContent extends StatelessWidget {
+class DiagnosticPageContent extends StatefulWidget {
   const DiagnosticPageContent({super.key});
+
+  @override
+  State<DiagnosticPageContent> createState() => _DiagnosticPageContentState();
+}
+
+class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
+  final BluetoothController _btController = BluetoothController();
+  StreamSubscription? _streamSubscription;
+
+  // Default States
+  String _connStatus = "Disconnected";
+  String _batteryStatus = "--%";
+  String _sensorStatus = "Inactive";
+  
+  Color _connColor = Colors.redAccent;
+  Color _battColor = Colors.white60;
+  Color _sensorColor = Colors.white60;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnection();
+    _listenToData();
+  }
+
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _checkConnection() {
+    if (_btController.isConnected) {
+      setState(() {
+        _connStatus = "CONNECTED";
+        _connColor = const Color(0xFF4CAF50); // Green
+      });
+    }
+  }
+
+  void _listenToData() {
+    _streamSubscription = _btController.dataStream.listen((message) {
+      if (!mounted) return;
+
+      // 1. Handle Connection Status Updates
+      if (message == "STATUS:Disconnected") {
+        setState(() {
+          _connStatus = "DISCONNECTED";
+          _connColor = Colors.redAccent;
+          _sensorStatus = "Inactive";
+        });
+      }
+
+      // 2. Handle Live Data (Voltage & Sensors)
+      // Format: DATA:12:00:00|YES|1800|3.85V|45000
+      if (message.startsWith("DATA:")) {
+        try {
+          List<String> parts = message.substring(5).split('|');
+          if (parts.length >= 4) {
+            // Parse Voltage (e.g., "3.85V")
+            String voltStr = parts[3].replaceAll("V", "").trim();
+            double volts = double.tryParse(voltStr) ?? 0.0;
+            
+            // Convert to Percentage (3.0V = 0%, 4.2V = 100%)
+            int percent = ((volts - 3.0) / (4.2 - 3.0) * 100).toInt();
+            percent = percent.clamp(0, 100);
+
+            setState(() {
+              _connStatus = "CONNECTED";
+              _connColor = const Color(0xFF4CAF50);
+              
+              _batteryStatus = "$percent% ($voltStr V)";
+              _battColor = percent > 20 ? const Color(0xFF4CAF50) : Colors.orange;
+
+              _sensorStatus = "ACTIVE";
+              _sensorColor = const Color(0xFF4CAF50);
+            });
+          }
+        } catch (e) {
+          print("Diag Parse Error: $e");
+        }
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1a1a2e),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             const SharedHeader(
               title: 'Smart Sleep',
               subtitle: 'Embedded Sound Therapy',
@@ -25,8 +111,10 @@ class DiagnosticPageContent extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF4CAF50), Color(0xFF45a049)],
+                  gradient: LinearGradient(
+                    colors: _connStatus == "CONNECTED" 
+                        ? [const Color(0xFF4CAF50), const Color(0xFF45a049)]
+                        : [const Color(0xFFEF5350), const Color(0xFFD32F2F)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -38,21 +126,8 @@ class DiagnosticPageContent extends StatelessWidget {
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Device',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          'Status',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('Device', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        Text('Status', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     Column(
@@ -63,23 +138,17 @@ class DiagnosticPageContent extends StatelessWidget {
                             color: Colors.white.withOpacity(0.3),
                             shape: BoxShape.circle,
                           ),
-                          child: const Text(
-                            'GOOD',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Icon(
+                            _connStatus == "CONNECTED" ? Icons.check : Icons.close,
+                            color: Colors.white, 
+                            size: 20
                           ),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
-                          'All hardware\noperational',
+                        Text(
+                          _connStatus == "CONNECTED" ? 'System Online' : 'Device Offline',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 11,
-                          ),
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
                         ),
                       ],
                     ),
@@ -90,55 +159,30 @@ class DiagnosticPageContent extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Hardware Status Section
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.0),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  'Hardware Status',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
+                child: Text('Hardware Status', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
 
             const SizedBox(height: 12),
 
-            // Status Items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                children: const [
-                  StatusCard(
-                    title: 'Connectivity',
-                    subtitle: 'Pairing success',
-                    status: 'CONNECTED',
-                  ),
-                  SizedBox(height: 12),
-                  StatusCard(
-                    title: 'Speaker',
-                    subtitle: 'Last calibrated June 16',
-                    status: 'WORKING',
-                  ),
-                  SizedBox(height: 12),
-                  StatusCard(
-                    title: 'Battery',
-                    subtitle: '81% remaining',
-                    status: 'GOOD',
-                  ),
-                  SizedBox(height: 12),
-                  StatusCard(
-                    title: 'Sensor',
-                    subtitle: 'Radar and Mic is active',
-                    status: 'WORKING',
-                  ),
-                  SizedBox(height: 20),
-                  SystemFunctionButton(),
-                  SizedBox(height: 20),
+                children: [
+                  StatusCard(title: 'Connectivity', subtitle: 'Bluetooth Link', status: _connStatus, statusColor: _connColor),
+                  const SizedBox(height: 12),
+                  const StatusCard(title: 'Speaker', subtitle: 'Audio Output', status: 'READY', statusColor: Color(0xFF4CAF50)), // Speaker is assumed ready if connected
+                  const SizedBox(height: 12),
+                  StatusCard(title: 'Battery', subtitle: 'Power Level', status: _batteryStatus, statusColor: _battColor),
+                  const SizedBox(height: 12),
+                  StatusCard(title: 'Sensors', subtitle: 'Radar & Microphone', status: _sensorStatus, statusColor: _sensorColor),
+                  const SizedBox(height: 20),
+                  const SystemFunctionButton(),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -153,12 +197,14 @@ class StatusCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final String status;
+  final Color statusColor;
 
   const StatusCard({
     super.key,
     required this.title,
     required this.subtitle,
     required this.status,
+    required this.statusColor,
   });
 
   @override
@@ -176,44 +222,20 @@ class StatusCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
-                  ),
-                ),
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white)),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white60,
-                  ),
-                ),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white60)),
               ],
             ),
           ),
           Row(
             children: [
               Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF4CAF50),
-                  shape: BoxShape.circle,
-                ),
+                width: 8, height: 8,
+                decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
               ),
               const SizedBox(width: 8),
-              Text(
-                status,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF4CAF50),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              Text(status, style: TextStyle(fontSize: 12, color: statusColor, fontWeight: FontWeight.w500)),
             ],
           ),
         ],
@@ -230,41 +252,22 @@ class SystemFunctionButton extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'System Function',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
+        const Text('System Function', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-              // 🎯 NAVIGATION CODE FIXED HERE
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const DiagnosticScreenContent(),
-                ),
+                MaterialPageRoute(builder: (context) => const DiagnosticScreenContent()),
               );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4CAF50),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text(
-              'RUN FULL DIAGNOSTIC',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            child: const Text('RUN FULL DIAGNOSTIC', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
           ),
         ),
       ],
