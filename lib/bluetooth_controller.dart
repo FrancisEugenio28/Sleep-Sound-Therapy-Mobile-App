@@ -29,8 +29,13 @@ class BluetoothController {
   Future<bool> connect(BluetoothDevice device) async {
     try {
       await connection?.finish(); // Close previous if exists
-      connection = await BluetoothConnection.toAddress(device.address);
       
+      // FIX: Added timeout logic here to prevent indefinite hanging
+      connection = await BluetoothConnection.toAddress(device.address)
+          .timeout(const Duration(seconds: 10));
+      
+      print('Connected to the device'); // Debug print
+
       // Listen to incoming data
       connection!.input!.listen(_onDataReceived).onDone(() {
         _dataStream.add("STATUS:Disconnected");
