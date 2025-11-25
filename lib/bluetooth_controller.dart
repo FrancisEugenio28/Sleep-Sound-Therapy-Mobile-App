@@ -59,7 +59,7 @@ class BluetoothController {
           // DEBUG PRINT: See what the phone finds
           if (name.isNotEmpty) print("SCANNED: $name");
 
-          if (name.contains"SMARTSLEEP_DEVICE" || localName.contains"SMARTSLEEP") {
+          if (name.contains("SMARTSLEEP_DEVICE") || localName.contains("SMARTSLEEP")) {
             print(">>> TARGET MATCHED! Connecting...");
             
             await FlutterBluePlus.stopScan();
