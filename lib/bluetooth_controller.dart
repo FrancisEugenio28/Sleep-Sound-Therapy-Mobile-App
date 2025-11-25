@@ -31,9 +31,10 @@ class BluetoothController {
     ].request();
   }
 
-  // Scan and Connect
+  // Scan and Connect (Debug Version)
   Future<bool> connectToDataService() async {
     try {
+      print("DEBUG: Starting BLE Scan...");
       // Start Scan
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
       
@@ -42,16 +43,34 @@ class BluetoothController {
       // Listen to scan results
       var subscription = FlutterBluePlus.scanResults.listen((results) async {
         for (ScanResult r in results) {
-          if (r.device.platformName == "SmartSleep_Device") {
+          // 1. PRINT EVERY DEVICE FOUND
+          // This will show us if the phone actually sees the ESP32
+          if (r.device.platformName.isNotEmpty) {
+             print("SCANNED: '${r.device.platformName}' (${r.device.remoteId})");
+          }
+
+          // 2. CHECK FOR MATCH (Case Insensitive)
+          String name = r.device.platformName.toUpperCase();
+          String localName = r.advertisementData.localName.toUpperCase(); // Check raw packet too
+
+          if (name == "SMARTSLEEP_DEVICE" || localName == "SMARTSLEEP_DEVICE") {
+            print(">>> TARGET MATCHED! Connecting to ${r.device.remoteId}...");
+            
             await FlutterBluePlus.stopScan();
             await _connectToDevice(r.device);
             found = true;
+            return; // Exit the loop
           }
         }
       });
 
       await Future.delayed(const Duration(seconds: 5));
       await subscription.cancel();
+      
+      if (!found) {
+        print("DEBUG: Scan finished. Device NOT found.");
+      }
+      
       return found;
     } catch (e) {
       print("Scan Error: $e");
