@@ -71,11 +71,18 @@ class _MusicPageContentState extends State<MusicPageContent> {
     super.dispose();
   }
 
-  // 2. Connection Dialog Logic
+  // 2. Connection Dialog Logic (Robust Version)
   void _showConnectionDialog() async {
+    // Request permissions first
     await _btController.initPermissions();
-    // Get list of paired devices
-    List<BluetoothDevice> devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+    
+    List<BluetoothDevice> devices = [];
+    try {
+      // Get list of paired devices
+      devices = await FlutterBluetoothSerial.instance.getBondedDevices();
+    } catch (e) {
+      print("Error getting devices: $e");
+    }
 
     if (!mounted) return;
 
@@ -88,7 +95,13 @@ class _MusicPageContentState extends State<MusicPageContent> {
           width: double.maxFinite,
           height: 200,
           child: devices.isEmpty 
-            ? const Center(child: Text("No paired devices found.\nPlease pair in Android Settings first.", style: TextStyle(color: Colors.white70)))
+            ? const Center(
+                child: Text(
+                  "No paired devices found.\n1. Go to Android Settings\n2. Bluetooth > Pair New Device\n3. Pair with 'SmartSleep_Pro'", 
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                )
+              )
             : ListView.builder(
                 itemCount: devices.length,
                 itemBuilder: (context, index) {
@@ -97,18 +110,27 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     subtitle: Text(devices[index].address, style: const TextStyle(color: Colors.white70)),
                     trailing: const Icon(Icons.link, color: Colors.white54),
                     onTap: () async {
+                      // 1. Close dialog immediately
                       Navigator.pop(context);
+                      
+                      // 2. Show "Connecting" feedback
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Connecting...")),
+                        const SnackBar(
+                          content: Text("Connecting to SmartSleep_Pro..."),
+                          duration: Duration(seconds: 2), 
+                        ),
                       );
                       
+                      // 3. Attempt Connection
                       bool success = await _btController.connect(devices[index]);
                       
+                      // 4. Show Result feedback
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(success ? "Connected to ${devices[index].name}!" : "Connection Failed"),
+                            content: Text(success ? "Connected Successfully!" : "Connection Failed. Check Debug Console."),
                             backgroundColor: success ? Colors.green : Colors.red,
+                            duration: const Duration(seconds: 3),
                           ),
                         );
                       }
@@ -344,7 +366,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Device Volume', // Changed label
+                    const Text('Device Volume', 
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                     Text('${frequencyValue.toInt()}%', 
                         style: const TextStyle(fontSize: 14, color: Color(0xFF6a1b9a), fontWeight: FontWeight.w600)),
@@ -371,14 +393,14 @@ class _MusicPageContentState extends State<MusicPageContent> {
                         enableTooltip: true,
                         activeColor: const Color(0xFF6a1b9a),
                         inactiveColor: Colors.white24,
-                        // OPTIMIZED: Update UI instantly, but send command only on release
+                        // OPTIMIZED: Update UI instantly
                         onChanged: (dynamic value) {
                           setState(() {
                             frequencyValue = value;
                           });
                         },
+                        // OPTIMIZED: Send Command only on Release
                         onChangeEnd: (dynamic value) {
-                          // SEND TO ESP32 Only when user stops dragging
                           _btController.sendCommand("VOL:${value.toInt()}");
                         },
                       ),
