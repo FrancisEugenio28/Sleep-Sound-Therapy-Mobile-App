@@ -38,7 +38,6 @@ class BluetoothController {
       // Start Scan
       await FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 5),
-        allowDuplicates: true
         );
       
       bool found = false;
