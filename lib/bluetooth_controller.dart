@@ -36,7 +36,10 @@ class BluetoothController {
     try {
       print("DEBUG: Starting BLE Scan...");
       // Start Scan
-      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
+      await FlutterBluePlus.startScan(
+        timeout: const Duration(seconds: 5),
+        allowDuplicates: true
+        );
       
       bool found = false;
       
@@ -53,8 +56,11 @@ class BluetoothController {
           String name = r.device.platformName.toUpperCase();
           String localName = r.advertisementData.localName.toUpperCase(); // Check raw packet too
 
-          if (name == "SMARTSLEEP_DEVICE" || localName == "SMARTSLEEP_DEVICE") {
-            print(">>> TARGET MATCHED! Connecting to ${r.device.remoteId}...");
+          // DEBUG PRINT: See what the phone finds
+          if (name.isNotEmpty) print("SCANNED: $name");
+
+          if (name.contains"SMARTSLEEP_DEVICE" || localName.contains"SMARTSLEEP") {
+            print(">>> TARGET MATCHED! Connecting...");
             
             await FlutterBluePlus.stopScan();
             await _connectToDevice(r.device);
@@ -64,7 +70,7 @@ class BluetoothController {
         }
       });
 
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 6));
       await subscription.cancel();
       
       if (!found) {
