@@ -42,7 +42,7 @@ class BluetoothController {
       // Listen to scan results
       var subscription = FlutterBluePlus.scanResults.listen((results) async {
         for (ScanResult r in results) {
-          if (r.device.platformName == "SmartSleep_Data") {
+          if (r.device.platformName == "SmartSleep_Device") {
             await FlutterBluePlus.stopScan();
             await _connectToDevice(r.device);
             found = true;

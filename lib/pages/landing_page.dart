@@ -89,7 +89,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                "Make sure your device is ON.\nScanning for 'SmartSleep_Data'...",
+                "Make sure your device is ON.\nScanning for 'SmartSleep_Device'...",
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white70),
               ),
