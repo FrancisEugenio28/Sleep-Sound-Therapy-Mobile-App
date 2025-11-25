@@ -133,7 +133,7 @@ class DiagnosticPageContent extends StatelessWidget {
                   SizedBox(height: 12),
                   StatusCard(
                     title: 'Sensor',
-                    subtitle: 'Accelerometer is active',
+                    subtitle: 'Radar and Mic is active',
                     status: 'WORKING',
                   ),
                   SizedBox(height: 20),
