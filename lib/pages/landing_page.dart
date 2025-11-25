@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+// REMOVED: import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
@@ -71,18 +71,10 @@ class _MusicPageContentState extends State<MusicPageContent> {
     super.dispose();
   }
 
-  // 2. Connection Dialog Logic (Robust Version)
+  // 2. Connection Dialog Logic (UPDATED FOR BLE)
   void _showConnectionDialog() async {
     // Request permissions first
     await _btController.initPermissions();
-    
-    List<BluetoothDevice> devices = [];
-    try {
-      // Get list of paired devices
-      devices = await FlutterBluetoothSerial.instance.getBondedDevices();
-    } catch (e) {
-      print("Error getting devices: $e");
-    }
 
     if (!mounted) return;
 
@@ -91,62 +83,40 @@ class _MusicPageContentState extends State<MusicPageContent> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF232b47),
         title: const Text("Connect to Device", style: TextStyle(color: Colors.white)),
-        content: SizedBox(
-          width: double.maxFinite,
-          height: 200,
-          child: devices.isEmpty 
-            ? const Center(
-                child: Text(
-                  "No paired devices found.\n1. Go to Android Settings\n2. Bluetooth > Pair New Device\n3. Pair with 'SmartSleep_Pro'", 
-                  style: TextStyle(color: Colors.white70),
-                  textAlign: TextAlign.center,
-                )
-              )
-            : ListView.builder(
-                itemCount: devices.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(devices[index].name ?? "Unknown", style: const TextStyle(color: Colors.white)),
-                    subtitle: Text(devices[index].address, style: const TextStyle(color: Colors.white70)),
-                    trailing: const Icon(Icons.link, color: Colors.white54),
-                    onTap: () async {
-                      // 1. Close dialog immediately
-                      Navigator.pop(context);
-                      
-                      // 2. Show "Connecting" feedback
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Connecting to SmartSleep_Pro..."),
-                          duration: Duration(seconds: 2), 
-                        ),
-                      );
-                      
-                      // 3. Attempt Connection
-                      bool success = await _btController.connect(devices[index]);
-                      
-                      // 4. Show Result feedback
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(success ? "Connected Successfully!" : "Connection Failed. Check Debug Console."),
-                            backgroundColor: success ? Colors.green : Colors.red,
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
-                      }
-                    },
-                  );
-                },
+        content: const SizedBox(
+          height: 100,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Make sure your device is ON.\nScanning for 'SmartSleep_Data'...",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white70),
               ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Colors.white54)),
+              SizedBox(height: 20),
+              CircularProgressIndicator(color: Color(0xFF6a1b9a)),
+            ],
           ),
-        ],
+        ),
       ),
     );
+
+    // Run the Auto-Connect Logic
+    bool success = await _btController.connectToDataService();
+
+    // Close Dialog
+    if (mounted) {
+      Navigator.pop(context);
+      
+      // Show Result
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(success ? "Connected Successfully!" : "Device Not Found. Try again."),
+          backgroundColor: success ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   void _togglePlayPause() async {
@@ -237,7 +207,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
               IconButton(
                 icon: const Icon(Icons.bluetooth, color: Colors.white),
                 tooltip: "Connect to Device",
-                onPressed: _showConnectionDialog, // Opens the list
+                onPressed: _showConnectionDialog, // Opens the scanning dialog
               ),
               const SizedBox(width: 10),
             ],

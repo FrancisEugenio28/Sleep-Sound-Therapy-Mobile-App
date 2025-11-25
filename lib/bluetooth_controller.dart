@@ -1,23 +1,26 @@
 import 'dart:async';
-import 'dart:typed_data';
-import 'package:flutter/material.dart'; // Added for debug prints
-import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'dart:convert';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BluetoothController {
-  // Singleton
   static final BluetoothController _instance = BluetoothController._internal();
   factory BluetoothController() => _instance;
   BluetoothController._internal();
 
-  BluetoothConnection? connection;
-  
-  // Stream for data
+  BluetoothDevice? connectedDevice;
+  BluetoothCharacteristic? txCharacteristic; // Receive Data
+  BluetoothCharacteristic? rxCharacteristic; // Send Commands
+
+  // UUIDs must match ESP32
+  final String SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+  final String TX_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"; 
+  final String RX_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+
   final StreamController<String> _dataStream = StreamController<String>.broadcast();
   Stream<String> get dataStream => _dataStream.stream;
 
-  // Getter for connection state
-  bool get isConnected => connection != null && connection!.isConnected;
+  bool get isConnected => connectedDevice != null;
 
   Future<void> initPermissions() async {
     await [
@@ -28,76 +31,66 @@ class BluetoothController {
     ].request();
   }
 
-  Future<bool> connect(BluetoothDevice device) async {
-    print("DEBUG: Starting connection to ${device.address}");
-
-    // 1. Clean up existing connections
-    if (connection != null) {
-      print("DEBUG: Closing existing connection...");
-      await connection!.finish();
-      connection = null;
-    }
-
+  // Scan and Connect
+  Future<bool> connectToDataService() async {
     try {
-      // 2. Attempt Connection
-      // We use a direct connection attempt without a manual timeout first
-      // The library handles timeouts internally usually around 5-10s
-      connection = await BluetoothConnection.toAddress(device.address);
+      // Start Scan
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 4));
       
-      print("DEBUG: Socket Connected!");
+      bool found = false;
+      
+      // Listen to scan results
+      var subscription = FlutterBluePlus.scanResults.listen((results) async {
+        for (ScanResult r in results) {
+          if (r.device.platformName == "SmartSleep_Data") {
+            await FlutterBluePlus.stopScan();
+            await _connectToDevice(r.device);
+            found = true;
+          }
+        }
+      });
 
-      // 3. Setup Listener
-      connection!.input!.listen(
-        _onDataReceived,
-        onDone: () {
-          print("DEBUG: Connection Closed by remote device");
-          _dataStream.add("STATUS:Disconnected");
-          connection = null;
-        },
-        onError: (error) {
-          print("DEBUG: Stream Error: $error");
-          _dataStream.add("STATUS:Error");
-        },
-      );
-
-      return true;
+      await Future.delayed(const Duration(seconds: 5));
+      await subscription.cancel();
+      return found;
     } catch (e) {
-      print("DEBUG: CRITICAL CONNECTION ERROR: $e");
-      connection = null;
+      print("Scan Error: $e");
       return false;
     }
   }
 
-  void _onDataReceived(Uint8List data) {
-    try {
-      String message = String.fromCharCodes(data).trim();
-      if (message.isNotEmpty) {
-        print("DEBUG: Received: $message"); // Visualize data in console
-        _dataStream.add(message);
+  Future<void> _connectToDevice(BluetoothDevice device) async {
+    await device.connect();
+    connectedDevice = device;
+
+    List<BluetoothService> services = await device.discoverServices();
+    for (var service in services) {
+      if (service.uuid.toString().toUpperCase() == SERVICE_UUID) {
+        for (var characteristic in service.characteristics) {
+          if (characteristic.uuid.toString().toUpperCase() == TX_UUID) {
+            txCharacteristic = characteristic;
+            await characteristic.setNotifyValue(true);
+            characteristic.onValueReceived.listen((value) {
+              String msg = utf8.decode(value);
+              _dataStream.add(msg);
+            });
+          }
+          if (characteristic.uuid.toString().toUpperCase() == RX_UUID) {
+            rxCharacteristic = characteristic;
+          }
+        }
       }
-    } catch (e) {
-      print("DEBUG: Parse Error: $e");
     }
   }
 
-  void sendCommand(String command) {
-    if (isConnected) {
-      print("DEBUG: Sending: $command");
-      try {
-        connection!.output.add(Uint8List.fromList("$command\n".codeUnits));
-        connection!.output.allSent.then((_) {
-          // Data sent successfully
-        });
-      } catch (e) {
-        print("DEBUG: Send Error: $e");
-      }
-    } else {
-      print("DEBUG: Cannot send, not connected.");
+  void sendCommand(String command) async {
+    if (rxCharacteristic != null) {
+      await rxCharacteristic!.write(utf8.encode(command));
     }
   }
 
-  void dispose() {
-    connection?.dispose();
-    _dataStream.close();
+  void disconnect() {
+    connectedDevice?.disconnect();
+    connectedDevice = null;
   }
 }
