@@ -336,9 +336,9 @@ class _MusicPageContentState extends State<MusicPageContent> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Device Volume', 
+                    const Text('Sound Frequency', 
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                    Text('${frequencyValue.toInt()}%', 
+                    Text('${frequencyValue.toInt()}Hz', 
                         style: const TextStyle(fontSize: 14, color: Color(0xFF6a1b9a), fontWeight: FontWeight.w600)),
                   ],
                 ),
