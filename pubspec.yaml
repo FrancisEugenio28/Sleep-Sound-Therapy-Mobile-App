@@ -13,6 +13,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # Database packages
+  sqflite: ^2.3.0
+  path: ^1.8.3
 
   # Core Flutter packages
   cupertino_icons: ^1.0.8
