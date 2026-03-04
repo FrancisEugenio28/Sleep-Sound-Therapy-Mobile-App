@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // For Date Formatting
 import '../widgets/shared_header.dart';
@@ -131,7 +132,7 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
                     const SizedBox(height: 10),
 
                     // 2. Static Stats (Now Dynamic from DB)
-                    _buildDynamicStatsCard(),
+                    const HistoricalFlipCard(), // Flip Card with Graph
                     
                     const SizedBox(height: 24),
                     
@@ -229,69 +230,6 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
     );
   }
 
-  // UPDATED: Now fetches Real Averages from SQLite
-  Widget _buildDynamicStatsCard() {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _averagesFuture,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        final data = snapshot.data!;
-        // Default to 0 if null
-        final avgQual = data['avgQuality'] ?? 0;
-        final avgDur = data['avgDuration'] ?? 0;
-        final avgEff = data['avgEfficiency'] ?? 0;
-        final avgLat = data['avgLatency'] ?? 0;
-
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF4a148c), Color(0xFF6a1b9a)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              // Row 1: Quality & Duration
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem("$avgQual%", "Avg. Quality", const Color(0xFF7FFF00)),
-                  _buildStatItem("${(avgDur / 60).toStringAsFixed(1)} h", "Avg. Duration", Colors.white),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // Row 2: Efficiency & Latency
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildStatItem("$avgEff%", "Avg. Efficiency", Colors.orangeAccent),
-                  _buildStatItem("${avgLat}m", "Avg. Latency", Colors.lightBlueAccent),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStatItem(String value, String label, Color color) {
-    return Column(
-      children: [
-        Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.white70)),
-      ],
-    );
-  }
-
   // UPDATED: Now fetches List from SQLite
   Widget _buildRecentActivityList() {
     return Column(
@@ -374,6 +312,181 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
           },
         ),
       ],
+    );
+  }
+}
+
+class HistoricalFlipCard extends StatefulWidget {
+  const HistoricalFlipCard({Key? key}) : super(key: key);
+
+  @override
+  _HistoricalFlipCardState createState() => _HistoricalFlipCardState();
+}
+
+class _HistoricalFlipCardState extends State<HistoricalFlipCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+  bool _isFront = true;
+
+  // Mock data for the 7-day Sleep Quality %
+  final List<Map<String, dynamic>> weeklyData = [
+    {'day': 'Mon', 'quality': 75},
+    {'day': 'Tue', 'quality': 82},
+    {'day': 'Wed', 'quality': 60},
+    {'day': 'Thu', 'quality': 90},
+    {'day': 'Fri', 'quality': 85},
+    {'day': 'Sat', 'quality': 95},
+    {'day': 'Sun', 'quality': 88},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _animation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _toggleCard() {
+    if (_isFront) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+    _isFront = !_isFront;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _toggleCard,
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          // The rotation angle from 0 to pi (180 degrees)
+          final angle = _animation.value * pi;
+          
+          // Matrix4.identity()..setEntry(3, 2, 0.001) adds 3D perspective
+          final transform = Matrix4.identity()
+            ..setEntry(3, 2, 0.001)
+            ..rotateX(angle);
+
+          return Transform(
+            transform: transform,
+            alignment: Alignment.center,
+            child: angle < (pi / 2)
+                ? _buildFront() // Show front if rotation is less than 90 degrees
+                : Transform(
+                    // Rotate the back by 180 degrees so it isn't upside down
+                    transform: Matrix4.identity()..rotateX(pi),
+                    alignment: Alignment.center,
+                    child: _buildBack(),
+                  ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- FRONT OF CARD (Your current stats) ---
+  Widget _buildFront() {
+    return Container(
+      width: double.infinity,
+      height: 250,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey[900],
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: const [
+          Icon(Icons.history, color: Colors.blueAccent, size: 40),
+          SizedBox(height: 10),
+          Text(
+            "Historical Averages",
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Tap to view weekly Sleep Quality graph",
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- BACK OF CARD (The Bar Graph) ---
+  Widget _buildBack() {
+    return Container(
+      width: double.infinity,
+      height: 250,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blueGrey[800],
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Sleep Quality % (Past 7 Days)",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 15),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: weeklyData.map((data) {
+                final double heightPercentage = data['quality'] / 100.0;
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${data['quality']}%',
+                      style: const TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                    const SizedBox(height: 4),
+                    // The Bar
+                    Container(
+                      width: 20,
+                      height: 120 * heightPercentage, // Max bar height is 120
+                      decoration: BoxDecoration(
+                        color: Colors.blueAccent,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      data['day'],
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
