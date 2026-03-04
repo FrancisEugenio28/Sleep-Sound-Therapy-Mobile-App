@@ -29,7 +29,7 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
 
   // --- DATABASE FUTURES (History Data) ---
   late Future<List<SleepSession>> _sessionsFuture;
-  late Future<Map<String, dynamic>> _averagesFuture;
+  //late Future<Map<String, dynamic>> _averagesFuture;
 
   @override
   void initState() {
@@ -42,7 +42,7 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
   void _refreshDatabaseData() {
     setState(() {
       _sessionsFuture = DatabaseHelper.instance.getAllSessions();
-      _averagesFuture = DatabaseHelper.instance.getAverages();
+      //_averagesFuture = DatabaseHelper.instance.getAverages();
     });
   }
 
@@ -132,7 +132,7 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
                     const SizedBox(height: 10),
 
                     // 2. Static Stats (Now Dynamic from DB)
-                    const HistoricalFlipCard(), // Flip Card with Graph
+                    HistoricalFlipCard(sessionsFuture: _sessionsFuture), // Flip Card with Graph
                     
                     const SizedBox(height: 24),
                     
@@ -317,7 +317,9 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
 }
 
 class HistoricalFlipCard extends StatefulWidget {
-  const HistoricalFlipCard({Key? key}) : super(key: key);
+  final Future<List<SleepSession>> sessionsFuture; // Now accepts DB data
+
+  const HistoricalFlipCard({Key? key, required this.sessionsFuture}) : super(key: key);
 
   @override
   _HistoricalFlipCardState createState() => _HistoricalFlipCardState();
@@ -329,16 +331,9 @@ class _HistoricalFlipCardState extends State<HistoricalFlipCard>
   late Animation<double> _animation;
   bool _isFront = true;
 
-  // Mock data for the 7-day Sleep Quality %
-  final List<Map<String, dynamic>> weeklyData = [
-    {'day': 'Mon', 'quality': 75},
-    {'day': 'Tue', 'quality': 82},
-    {'day': 'Wed', 'quality': 60},
-    {'day': 'Thu', 'quality': 90},
-    {'day': 'Fri', 'quality': 85},
-    {'day': 'Sat', 'quality': 95},
-    {'day': 'Sun', 'quality': 88},
-  ];
+  // Dropdown state
+  String _selectedMetric = 'Quality';
+  final List<String> _metrics = ['Quality', 'Duration', 'Efficiency', 'Latency'];
 
   @override
   void initState() {
@@ -370,14 +365,11 @@ class _HistoricalFlipCardState extends State<HistoricalFlipCard>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: _toggleCard,
+      onTap: _isFront ? _toggleCard : null, // Only tap front to flip. Back has its own close button.
       child: AnimatedBuilder(
         animation: _animation,
         builder: (context, child) {
-          // The rotation angle from 0 to pi (180 degrees)
           final angle = _animation.value * pi;
-          
-          // Matrix4.identity()..setEntry(3, 2, 0.001) adds 3D perspective
           final transform = Matrix4.identity()
             ..setEntry(3, 2, 0.001)
             ..rotateX(angle);
@@ -386,9 +378,8 @@ class _HistoricalFlipCardState extends State<HistoricalFlipCard>
             transform: transform,
             alignment: Alignment.center,
             child: angle < (pi / 2)
-                ? _buildFront() // Show front if rotation is less than 90 degrees
+                ? _buildFront()
                 : Transform(
-                    // Rotate the back by 180 degrees so it isn't upside down
                     transform: Matrix4.identity()..rotateX(pi),
                     alignment: Alignment.center,
                     child: _buildBack(),
@@ -399,90 +390,164 @@ class _HistoricalFlipCardState extends State<HistoricalFlipCard>
     );
   }
 
-  // --- FRONT OF CARD (Your current stats) ---
   Widget _buildFront() {
     return Container(
       width: double.infinity,
       height: 250,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.blueGrey[900],
-        borderRadius: BorderRadius.circular(15),
+        color: const Color(0xFF232b47), // Matched to your app's card color
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
         boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
         ],
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: const [
-          Icon(Icons.history, color: Colors.blueAccent, size: 40),
-          SizedBox(height: 10),
+          Icon(Icons.bar_chart, color: Color(0xFF6a1b9a), size: 50),
+          SizedBox(height: 15),
           Text(
-            "Historical Averages",
+            "Historical Trends",
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 8),
           Text(
-            "Tap to view weekly Sleep Quality graph",
-            style: TextStyle(color: Colors.grey),
+            "Tap to view your 7-day sleep charts",
+            style: TextStyle(color: Colors.white54, fontSize: 12),
           ),
         ],
       ),
     );
   }
 
-  // --- BACK OF CARD (The Bar Graph) ---
   Widget _buildBack() {
     return Container(
       width: double.infinity,
       height: 250,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.blueGrey[800],
-        borderRadius: BorderRadius.circular(15),
+        color: const Color(0xFF2a2a3e),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
         boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4))
+          BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            "Sleep Quality % (Past 7 Days)",
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          // Header Row with Dropdown and Close Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              DropdownButton<String>(
+                value: _selectedMetric,
+                dropdownColor: const Color(0xFF232b47),
+                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                underline: Container(), // Hides the default underline
+                icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF6a1b9a)),
+                items: _metrics.map((String metric) {
+                  return DropdownMenuItem<String>(
+                    value: metric,
+                    child: Text(metric),
+                  );
+                }).toList(),
+                onChanged: (newValue) {
+                  setState(() {
+                    _selectedMetric = newValue!;
+                  });
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.white54, size: 20),
+                onPressed: _toggleCard, // Flip back to front
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
           ),
-          const SizedBox(height: 15),
+          
+          const SizedBox(height: 10),
+
+          // The Dynamic Graph
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: weeklyData.map((data) {
-                final double heightPercentage = data['quality'] / 100.0;
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${data['quality']}%',
-                      style: const TextStyle(color: Colors.white70, fontSize: 10),
-                    ),
-                    const SizedBox(height: 4),
-                    // The Bar
-                    Container(
-                      width: 20,
-                      height: 120 * heightPercentage, // Max bar height is 120
-                      decoration: BoxDecoration(
-                        color: Colors.blueAccent,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      data['day'],
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
-                    ),
-                  ],
+            child: FutureBuilder<List<SleepSession>>(
+              future: widget.sessionsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: Color(0xFF6a1b9a)));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text("No data generated yet.", style: TextStyle(color: Colors.white54)));
+                }
+
+                // Get last 7 sessions and sort them chronologically (oldest to newest for graph)
+                List<SleepSession> sessions = snapshot.data!.take(7).toList();
+                sessions.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+                // 1. Determine the maximum value for accurate bar scaling
+                double maxScaleValue = 100.0; // Default max for Quality & Efficiency (%)
+                if (_selectedMetric == 'Duration') {
+                  maxScaleValue = sessions.map((s) => s.durationMinutes.toDouble()).reduce(max);
+                  if (maxScaleValue < 1) maxScaleValue = 1; // Prevent division by zero
+                } else if (_selectedMetric == 'Latency') {
+                  maxScaleValue = sessions.map((s) => s.sleepLatency.toDouble()).reduce(max);
+                  if (maxScaleValue < 1) maxScaleValue = 1;
+                }
+
+                // 2. Draw the bars
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: sessions.map((session) {
+                    // Extract the specific value based on the dropdown
+                    double rawValue = 0;
+                    String displayLabel = "";
+
+                    if (_selectedMetric == 'Quality') {
+                      rawValue = session.qualityScore.toDouble();
+                      displayLabel = "${rawValue.toInt()}%";
+                    } else if (_selectedMetric == 'Efficiency') {
+                      rawValue = session.sleepEfficiency.toDouble();
+                      displayLabel = "${rawValue.toInt()}%";
+                    } else if (_selectedMetric == 'Duration') {
+                      rawValue = session.durationMinutes.toDouble();
+                      displayLabel = "${(rawValue / 60).toStringAsFixed(1)}h";
+                    } else if (_selectedMetric == 'Latency') {
+                      rawValue = session.sleepLatency.toDouble();
+                      displayLabel = "${rawValue.toInt()}m";
+                    }
+
+                    // Calculate bar height relative to the max value
+                    double heightPercentage = rawValue / maxScaleValue;
+                    if (heightPercentage > 1.0) heightPercentage = 1.0;
+
+                    // Get Day string (e.g., "Mon")
+                    String dayStr = DateFormat('E').format(session.startTime);
+
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Text(displayLabel, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        const SizedBox(height: 4),
+                        // The animated bar
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          width: 20,
+                          height: 120 * heightPercentage, 
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6a1b9a), // Theme purple
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(dayStr, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+                      ],
+                    );
+                  }).toList(),
                 );
-              }).toList(),
+              },
             ),
           ),
         ],
