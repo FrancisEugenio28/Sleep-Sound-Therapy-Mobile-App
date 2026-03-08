@@ -12,10 +12,11 @@ class BluetoothController {
   BluetoothCharacteristic? txCharacteristic; // Receive Data
   BluetoothCharacteristic? rxCharacteristic; // Send Commands
 
-  // UUIDs must match ESP32
-  final String SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
-  final String TX_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"; 
-  final String RX_UUID = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+  // UPDATED: UUIDs now perfectly match the ESP32 code
+  final String SERVICE_UUID = "0000FFE0-0000-1000-8000-00805F9B34FB";
+  // The ESP32 uses a single characteristic for both sending and receiving
+  final String TX_UUID = "0000FFE1-0000-1000-8000-00805F9B34FB"; 
+  final String RX_UUID = "0000FFE1-0000-1000-8000-00805F9B34FB";
 
   final StreamController<String> _dataStream = StreamController<String>.broadcast();
   Stream<String> get dataStream => _dataStream.stream;
@@ -31,40 +32,36 @@ class BluetoothController {
     ].request();
   }
 
-  // Scan and Connect (Debug Version)
+  // Scan and Connect
   Future<bool> connectToDataService() async {
     try {
       print("DEBUG: Starting BLE Scan...");
       // Start Scan
       await FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 5),
-        );
+      );
       
       bool found = false;
       
       // Listen to scan results
       var subscription = FlutterBluePlus.scanResults.listen((results) async {
         for (ScanResult r in results) {
-          // 1. PRINT EVERY DEVICE FOUND
-          // This will show us if the phone actually sees the ESP32
           if (r.device.platformName.isNotEmpty) {
              print("SCANNED: '${r.device.platformName}' (${r.device.remoteId})");
           }
 
           // 2. CHECK FOR MATCH (Case Insensitive)
           String name = r.device.platformName.toUpperCase();
-          String localName = r.advertisementData.localName.toUpperCase(); // Check raw packet too
+          String localName = r.advertisementData.localName.toUpperCase(); 
 
-          // DEBUG PRINT: See what the phone finds
-          if (name.isNotEmpty) print("SCANNED: $name");
-
-          if (name.contains("SMARTSLEEP_DEVICE") || localName.contains("SMARTSLEEP")) {
+          // UPDATED: Now looks for SOUNDTHERAPY to match the ESP32
+          if (name.contains("SOUNDTHERAPY") || localName.contains("SOUNDTHERAPY")) {
             print(">>> TARGET MATCHED! Connecting...");
             
             await FlutterBluePlus.stopScan();
             await _connectToDevice(r.device);
             found = true;
-            return; // Exit the loop
+            return; 
           }
         }
       });
@@ -91,6 +88,11 @@ class BluetoothController {
     for (var service in services) {
       if (service.uuid.toString().toUpperCase() == SERVICE_UUID) {
         for (var characteristic in service.characteristics) {
+          // Setup RX (Sending commands to ESP32)
+          if (characteristic.uuid.toString().toUpperCase() == RX_UUID) {
+            rxCharacteristic = characteristic;
+          }
+          // Setup TX (Receiving data from ESP32)
           if (characteristic.uuid.toString().toUpperCase() == TX_UUID) {
             txCharacteristic = characteristic;
             await characteristic.setNotifyValue(true);
@@ -98,9 +100,6 @@ class BluetoothController {
               String msg = utf8.decode(value);
               _dataStream.add(msg);
             });
-          }
-          if (characteristic.uuid.toString().toUpperCase() == RX_UUID) {
-            rxCharacteristic = characteristic;
           }
         }
       }
