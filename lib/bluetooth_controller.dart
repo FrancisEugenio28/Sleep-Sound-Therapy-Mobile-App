@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'dart:typed_data';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class BluetoothController {
@@ -8,20 +9,11 @@ class BluetoothController {
   factory BluetoothController() => _instance;
   BluetoothController._internal();
 
-  BluetoothDevice? connectedDevice;
-  BluetoothCharacteristic? txCharacteristic; // Receive Data
-  BluetoothCharacteristic? rxCharacteristic; // Send Commands
-
-  // UPDATED: UUIDs now perfectly match the ESP32 code
-  final String SERVICE_UUID = "0000FFE0-0000-1000-8000-00805F9B34FB";
-  // The ESP32 uses a single characteristic for both sending and receiving
-  final String TX_UUID = "0000FFE1-0000-1000-8000-00805F9B34FB"; 
-  final String RX_UUID = "0000FFE1-0000-1000-8000-00805F9B34FB";
-
+  BluetoothConnection? connection;
   final StreamController<String> _dataStream = StreamController<String>.broadcast();
   Stream<String> get dataStream => _dataStream.stream;
 
-  bool get isConnected => connectedDevice != null;
+  bool get isConnected => connection != null && connection!.isConnected;
 
   Future<void> initPermissions() async {
     await [
@@ -32,88 +24,72 @@ class BluetoothController {
     ].request();
   }
 
-  // Scan and Connect
+  // Classic Bluetooth Connect
   Future<bool> connectToDataService() async {
     try {
-      print("DEBUG: Starting BLE Scan...");
-      // Start Scan
-      await FlutterBluePlus.startScan(
-        timeout: const Duration(seconds: 5),
-      );
+      print("DEBUG: Getting paired devices...");
       
-      bool found = false;
+      // 1. Get devices already paired in Android Settings
+      List<BluetoothDevice> pairedDevices = await FlutterBluetoothSerial.instance.getBondedDevices();
       
-      // Listen to scan results
-      var subscription = FlutterBluePlus.scanResults.listen((results) async {
-        for (ScanResult r in results) {
-          if (r.device.platformName.isNotEmpty) {
-             print("SCANNED: '${r.device.platformName}' (${r.device.remoteId})");
-          }
+      BluetoothDevice? targetDevice;
+      for (BluetoothDevice device in pairedDevices) {
+        // Look for the name we set in the ESP32 code
+        if (device.name != null && device.name!.toUpperCase().contains("SMARTSLEEP")) {
+          targetDevice = device;
+          break;
+        }
+      }
 
-          // 2. CHECK FOR MATCH (Case Insensitive)
-          String name = r.device.platformName.toUpperCase();
-          String localName = r.advertisementData.localName.toUpperCase(); 
+      if (targetDevice == null) {
+        print("DEBUG: SmartSleep device not found in paired list. Did you pair it in Android settings first?");
+        return false;
+      }
 
-          // UPDATED: Now looks for SOUNDTHERAPY to match the ESP32
-          if (name.contains("SOUNDTHERAPY") || localName.contains("SOUNDTHERAPY")) {
-            print(">>> TARGET MATCHED! Connecting...");
-            
-            await FlutterBluePlus.stopScan();
-            await _connectToDevice(r.device);
-            found = true;
-            return; 
+      print(">>> TARGET MATCHED! Connecting to SPP Data Port...");
+      
+      // 2. Connect to the Serial Port Profile (SPP)
+      connection = await BluetoothConnection.toAddress(targetDevice.address);
+      print('Connected to the device data port!');
+
+      // 3. Listen for incoming ESP32 data (e.g., Sensor readings)
+      String buffer = "";
+      connection!.input!.listen((Uint8List data) {
+        buffer += ascii.decode(data);
+        
+        // Parse complete lines (ESP32 sends data ending with \n)
+        while (buffer.contains('\n')) {
+          int index = buffer.indexOf('\n');
+          String message = buffer.substring(0, index).trim();
+          buffer = buffer.substring(index + 1);
+          
+          if (message.isNotEmpty) {
+            _dataStream.add(message);
           }
         }
+      }).onDone(() {
+        print('Disconnected by remote request');
+        disconnect();
       });
 
-      await Future.delayed(const Duration(seconds: 6));
-      await subscription.cancel();
-      
-      if (!found) {
-        print("DEBUG: Scan finished. Device NOT found.");
-      }
-      
-      return found;
+      return true;
     } catch (e) {
-      print("Scan Error: $e");
+      print("Connection Error: $e");
       return false;
     }
   }
 
-  Future<void> _connectToDevice(BluetoothDevice device) async {
-    await device.connect();
-    connectedDevice = device;
-
-    List<BluetoothService> services = await device.discoverServices();
-    for (var service in services) {
-      if (service.uuid.toString().toUpperCase() == SERVICE_UUID) {
-        for (var characteristic in service.characteristics) {
-          // Setup RX (Sending commands to ESP32)
-          if (characteristic.uuid.toString().toUpperCase() == RX_UUID) {
-            rxCharacteristic = characteristic;
-          }
-          // Setup TX (Receiving data from ESP32)
-          if (characteristic.uuid.toString().toUpperCase() == TX_UUID) {
-            txCharacteristic = characteristic;
-            await characteristic.setNotifyValue(true);
-            characteristic.onValueReceived.listen((value) {
-              String msg = utf8.decode(value);
-              _dataStream.add(msg);
-            });
-          }
-        }
-      }
-    }
-  }
-
   void sendCommand(String command) async {
-    if (rxCharacteristic != null) {
-      await rxCharacteristic!.write(utf8.encode(command));
+    if (isConnected) {
+      // Send command with a newline character so ESP32 knows it's complete
+      connection!.output.add(ascii.encode(command + "\n"));
+      await connection!.output.allSent;
     }
   }
 
   void disconnect() {
-    connectedDevice?.disconnect();
-    connectedDevice = null;
+    connection?.dispose();
+    connection = null;
+    _dataStream.add("STATUS:Disconnected"); // Notify UI to update colors
   }
 }

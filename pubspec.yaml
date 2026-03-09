@@ -39,7 +39,7 @@ dependencies:
   audio_service: ^0.18.18
 
   # bluetooth and device discovery
-  flutter_blue_plus: ^1.34.5
+  flutter_bluetooth_serial: ^0.4.0
 
   # handler
   permission_handler: ^11.3.1
