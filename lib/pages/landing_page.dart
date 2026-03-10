@@ -354,12 +354,12 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     ),
                     Expanded(
                       child: SfSlider(
-                        min: 0.0, //0.0x frequency
+                        min: 0.2, //0.2x frequency = 200Hz
                         max: 0.5, //0.5x frequency = 500Hz
                         value: frequencyValue,
-                        interval: 0.05,
+                        interval: 0.02,
                         showTicks: true,
-                        showLabels: true,
+                        showLabels: false,
                         enableTooltip: true,
                         activeColor: const Color(0xFF6a1b9a),
                         inactiveColor: Colors.white24,
