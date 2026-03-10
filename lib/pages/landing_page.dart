@@ -25,7 +25,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
   final BluetoothController _btController = BluetoothController();
 
   // Frequency/Volume Value
-  double frequencyValue = 50.0; // Default to 50% volume
+  double frequencyValue = 1.0; // Default to 1.0x frequency
 
   final Map<String, List<String>> playlists = {
     'Broadband Noise': ['White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise', 'Violet Noise', 'Gray Noise', 'Black Noise'],
@@ -354,12 +354,12 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     ),
                     Expanded(
                       child: SfSlider(
-                        min: 0.0,
-                        max: 100.0, // Correct range for ESP32 Volume
+                        min: 0.0, //0.0x frequency
+                        max: 0.5, //0.5x frequency = 500Hz
                         value: frequencyValue,
-                        interval: 20,
+                        interval: 0.05,
                         showTicks: true,
-                        showLabels: false,
+                        showLabels: true,
                         enableTooltip: true,
                         activeColor: const Color(0xFF6a1b9a),
                         inactiveColor: Colors.white24,
@@ -368,10 +368,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
                           setState(() {
                             frequencyValue = value;
                           });
-                        },
-                        // OPTIMIZED: Send Command only on Release
-                        onChangeEnd: (dynamic value) {
-                          _btController.sendCommand("VOL:${value.toInt()}");
+                          _audioPlayer.setPitch(frequencyValue);
                         },
                       ),
                     ),
