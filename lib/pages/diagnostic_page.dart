@@ -56,34 +56,30 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
           _connStatus = "DISCONNECTED";
           _connColor = Colors.redAccent;
           _sensorStatus = "Inactive";
+          _sensorColor = Colors.white60;
         });
       }
 
-      // 2. Handle Live Data (Voltage & Sensors)
-      // Format: DATA:12:00:00|YES|1800|3.85V|45000
+      // 2. Handle Live Data Ping (We need this back so Sensors show as ACTIVE!)
       if (message.startsWith("DATA:")) {
+        setState(() {
+          _sensorStatus = "ACTIVE";
+          _sensorColor = const Color(0xFF4CAF50);
+        });
+      }
+
+      // 3. Handle Battery Diagnostics (Only updates when DIAG is received)
+      if (message.startsWith("DIAG:Battery:")) {
         try {
-          List<String> parts = message.substring(5).split('|');
-          if (parts.length >= 4) {
-            // Parse Voltage (e.g., "3.85V")
-            String voltStr = parts[3].replaceAll("V", "").trim();
-            double volts = double.tryParse(voltStr) ?? 0.0;
-            
-            // Convert to Percentage (3.0V = 0%, 4.2V = 100%)
-            int percent = ((volts - 3.0) / (4.2 - 3.0) * 100).toInt();
-            percent = percent.clamp(0, 100);
+          String voltStr = message.split(":")[2].replaceAll("V", "").trim();
+          double volts = double.tryParse(voltStr) ?? 0.0;
+          
+          int percent = ((volts - 3.0) / (4.2 - 3.0) * 100).toInt().clamp(0, 100);
 
-            setState(() {
-              _connStatus = "CONNECTED";
-              _connColor = const Color(0xFF4CAF50);
-              
-              _batteryStatus = "$percent% ($voltStr V)";
-              _battColor = percent > 20 ? const Color(0xFF4CAF50) : Colors.orange;
-
-              _sensorStatus = "ACTIVE";
-              _sensorColor = const Color(0xFF4CAF50);
-            });
-          }
+          setState(() {
+            _batteryStatus = "$percent% ($voltStr V)";
+            _battColor = percent > 20 ? const Color(0xFF4CAF50) : Colors.orange;
+          });
         } catch (e) {
           print("Diag Parse Error: $e");
         }

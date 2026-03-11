@@ -71,6 +71,8 @@ class BluetoothController {
         print('Disconnected by remote request');
         disconnect();
       });
+      
+      sendCommand("DIAG");
 
       return true;
     } catch (e) {

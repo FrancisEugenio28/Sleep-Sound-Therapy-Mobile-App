@@ -94,30 +94,8 @@ class _DiagnosticScreenContentState extends State<DiagnosticScreenContent> {
     _streamSubscription = _btController.dataStream.listen((message) {
       if (!mounted) return;
 
-      // Check both DIAG response AND streaming DATA
-      String? voltStr;
-      
       if (message.startsWith("DIAG:Battery:")) {
-        voltStr = message.split(":")[2].replaceAll("V", "").trim();
-      } 
-      else if (message.startsWith("DATA:")) {
-        List<String> parts = message.substring(5).split('|');
-        if (parts.length >= 4) {
-          voltStr = parts[3].replaceAll("V", "").trim();
-          // If we get DATA, sensors are active
-          if (_sensorStatus != "Active") {
-             setState(() {
-              _sensorStatus = "Active";
-              _sensorColor = _primaryGreen;
-              _progressValue = 1.0;
-              _statusText = "Diagnostic Complete";
-              _isComplete = true;
-            });
-          }
-        }
-      }
-
-      if (voltStr != null) {
+        String voltStr = message.split(":")[2].replaceAll("V", "").trim();
         double volts = double.tryParse(voltStr) ?? 0.0;
         int percent = ((volts - 3.0) / (4.2 - 3.0) * 100).toInt().clamp(0, 100);
         
@@ -129,12 +107,25 @@ class _DiagnosticScreenContentState extends State<DiagnosticScreenContent> {
              _statusText = "Verifying Sensors...";
           }
         });
+      } 
+      else if (message.startsWith("DATA:")) {
+        // If we get DATA, sensors are actively broadcasting
+        if (_sensorStatus != "Active") {
+           setState(() {
+            _sensorStatus = "Active";
+            _sensorColor = _primaryGreen;
+            
+            // Only complete the diagnostic if battery has also been received
+            if (_batteryStatus != "Waiting...") {
+              _progressValue = 1.0;
+              _statusText = "Diagnostic Complete";
+              _isComplete = true;
+            }
+          });
+        }
       }
     });
   }
-
-  // ... (KEEP THE REST OF YOUR WIDGET BUILDERS THE SAME) ...
-  // (Copy _buildRunningDiagnosticBox, _buildTestCard, _buildStatusAndButton, and build from your previous code)
   
   Widget _buildRunningDiagnosticBox() {
     return Container(
