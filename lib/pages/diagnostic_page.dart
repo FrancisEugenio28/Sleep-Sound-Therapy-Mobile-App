@@ -63,6 +63,8 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
       // 2. Handle Live Data Ping (We need this back so Sensors show as ACTIVE!)
       if (message.startsWith("DATA:")) {
         setState(() {
+          _connStatus = "CONNECTED";
+          _connColor = const Color(0xFF4CAF50);
           _sensorStatus = "ACTIVE";
           _sensorColor = const Color(0xFF4CAF50);
         });
