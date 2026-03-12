@@ -55,7 +55,7 @@ class BluetoothController {
       // 3. Listen for incoming ESP32 data (e.g., Sensor readings)
       String buffer = "";
       connection!.input!.listen((Uint8List data) {
-        buffer += ascii.decode(data);
+        buffer += String.fromCharCodes(data);
         
         // Parse complete lines (ESP32 sends data ending with \n)
         while (buffer.contains('\n')) {
@@ -73,6 +73,8 @@ class BluetoothController {
       });
       
       sendCommand("DIAG");
+
+      _dataStream.add("STATUS:Connected");
 
       return true;
     } catch (e) {

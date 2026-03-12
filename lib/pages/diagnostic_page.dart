@@ -60,17 +60,26 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
         });
       }
 
-      // 2. Handle Live Data Ping (We need this back so Sensors show as ACTIVE!)
-      if (message.startsWith("DATA:")) {
+      // ADD THIS NEW BLOCK: Instantly turn UI green when Bluetooth connects!
+      if (message == "STATUS:Connected") {
         setState(() {
           _connStatus = "CONNECTED";
           _connColor = const Color(0xFF4CAF50);
-          _sensorStatus = "ACTIVE";
-          _sensorColor = const Color(0xFF4CAF50);
         });
       }
 
-      // 3. Handle Battery Diagnostics (Only updates when DIAG is received)
+      // 2. Handle Live Data Ping (We need this back so Sensors show as ACTIVE!)
+      if (message.startsWith("DATA:")) {
+        setState(() {
+          _sensorStatus = "ACTIVE";
+          _sensorColor = const Color(0xFF4CAF50);
+          // Redundancy check to ensure connection is green
+          _connStatus = "CONNECTED"; 
+          _connColor = const Color(0xFF4CAF50);
+        });
+      }
+
+      // 3. Handle Battery Diagnostics
       if (message.startsWith("DIAG:Battery:")) {
         try {
           String voltStr = message.split(":")[2].replaceAll("V", "").trim();
