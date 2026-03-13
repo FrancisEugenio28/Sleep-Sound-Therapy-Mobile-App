@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'pages/landing_page.dart';
 import 'pages/sleep_data.dart';
 import 'pages/diagnostic_page.dart';
 import 'pages/diagnostic_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  await JustAudioBackground.init(
+    androidNotificationChannelId: 'com.example.flutter_application_1.channel.audio',
+    androidNotificationChannelName: 'Audio playback',
+    androidNotificationOngoing: true,
+  );
+
   runApp(const MyApp());
 }
 

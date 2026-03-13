@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 // REMOVED: import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:rive_animated_icon/rive_animated_icon.dart';
 import 'package:syncfusion_flutter_sliders/sliders.dart';
 import '../widgets/shared_header.dart';
@@ -67,6 +69,12 @@ class _MusicPageContentState extends State<MusicPageContent> {
 
   @override
   void dispose() {
+    // If you want the audio to continue playing even when this widget is disposed 
+    // (e.g., if the user closes the app but the background service should keep it alive),
+    // you might NOT want to dispose the player here, or use a more persistent player management.
+    // However, for this app, just_audio_background will handle the service.
+    // We'll keep the dispose but note that it might stop audio if the process is killed
+    // and this widget is part of the disposal chain.
     _audioPlayer.dispose();
     super.dispose();
   }
@@ -141,7 +149,18 @@ class _MusicPageContentState extends State<MusicPageContent> {
 
     String fileName = soundName.toLowerCase().replaceAll(' ', '_');
     try {
-      await _audioPlayer.setAsset('assets/$categoryFolder/$fileName.mp3');
+      // Use AudioSource.uri with MediaItem for background support
+      final audioSource = AudioSource.uri(
+        Uri.parse('asset:///assets/$categoryFolder/$fileName.mp3'),
+        tag: MediaItem(
+          id: 'assets/$categoryFolder/$fileName.mp3',
+          album: category,
+          title: soundName,
+          // You can add an artUri here if you have icons for sounds
+        ),
+      );
+      
+      await _audioPlayer.setAudioSource(audioSource);
       await _audioPlayer.setPitch(frequencyValue); // Re-apply current pitch/frequency
       await _audioPlayer.play();
     } catch (e) {

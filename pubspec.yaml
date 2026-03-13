@@ -51,6 +51,16 @@ dev_dependencies:
 
   # Updated to a more recent major version for current best practices
   flutter_lints: ^3.0.0 
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  web:
+    generate: true
+    image_path: "assets/app_icon.png"
+  image_path: "assets/app_icon.png"
+  min_sdk_android: 21 # should be same as minSdk in build.gradle
 
 # For information on the generic Dart part of this file, see the Dart pub documentation.
 
