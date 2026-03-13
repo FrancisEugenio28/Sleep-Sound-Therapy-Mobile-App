@@ -25,7 +25,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
   final BluetoothController _btController = BluetoothController();
 
   // Frequency/Volume Value
-  double frequencyValue = 1.0; // Default to 1.0x frequency
+  double frequencyValue = 1.0; // Default to 1.0x (Original Sound)
 
   final Map<String, List<String>> playlists = {
     'Broadband Noise': ['White Noise', 'Pink Noise', 'Brown Noise', 'Blue Noise', 'Violet Noise', 'Gray Noise', 'Black Noise'],
@@ -142,6 +142,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
     String fileName = soundName.toLowerCase().replaceAll(' ', '_');
     try {
       await _audioPlayer.setAsset('assets/$categoryFolder/$fileName.mp3');
+      await _audioPlayer.setPitch(frequencyValue); // Re-apply current pitch/frequency
       await _audioPlayer.play();
     } catch (e) {
       print("Error loading asset: $e");
@@ -338,7 +339,10 @@ class _MusicPageContentState extends State<MusicPageContent> {
                   children: [
                     const Text('Sound Frequency', 
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                    Text('${frequencyValue.toInt()}Hz', 
+                    Text(
+                        frequencyValue == 1.0 
+                          ? 'Level 4 (Original)' 
+                          : 'Level ${((frequencyValue - 0.4) / 0.2 + 1).toInt()} (${frequencyValue.toStringAsFixed(1)}x)', 
                         style: const TextStyle(fontSize: 14, color: Color(0xFF6a1b9a), fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -354,10 +358,11 @@ class _MusicPageContentState extends State<MusicPageContent> {
                     ),
                     Expanded(
                       child: SfSlider(
-                        min: 0.2, //0.2x frequency = 200Hz
-                        max: 0.5, //0.5x frequency = 500Hz
+                        min: 0.4, 
+                        max: 1.6, 
                         value: frequencyValue,
-                        interval: 0.02,
+                        interval: 0.2,
+                        stepSize: 0.2,
                         showTicks: true,
                         showLabels: false,
                         enableTooltip: true,
