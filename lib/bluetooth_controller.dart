@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../models/sleep_session.dart'; // REQUIRED to access the database
 
 class BluetoothController {
   static final BluetoothController _instance = BluetoothController._internal();
@@ -14,6 +15,11 @@ class BluetoothController {
   Stream<String> get dataStream => _dataStream.stream;
 
   bool get isConnected => connection != null && connection!.isConnected;
+
+  // --- LIVE SESSION TRACKING VARIABLES ---
+  DateTime? _sessionStartTime;
+  List<int> _noiseReadings = [];
+  int _awakeSeconds = 0;
 
   Future<void> initPermissions() async {
     await [
@@ -29,12 +35,10 @@ class BluetoothController {
     try {
       print("DEBUG: Getting paired devices...");
       
-      // 1. Get devices already paired in Android Settings
       List<BluetoothDevice> pairedDevices = await FlutterBluetoothSerial.instance.getBondedDevices();
       
       BluetoothDevice? targetDevice;
       for (BluetoothDevice device in pairedDevices) {
-        // Look for the name we set in the ESP32 code
         if (device.name != null && device.name!.toUpperCase().contains("SMARTSLEEP")) {
           targetDevice = device;
           break;
@@ -42,38 +46,60 @@ class BluetoothController {
       }
 
       if (targetDevice == null) {
-        print("DEBUG: SmartSleep device not found in paired list. Did you pair it in Android settings first?");
+        print("DEBUG: SmartSleep device not found.");
         return false;
       }
 
       print(">>> TARGET MATCHED! Connecting to SPP Data Port...");
       
-      // 2. Connect to the Serial Port Profile (SPP)
       connection = await BluetoothConnection.toAddress(targetDevice.address);
       print('Connected to the device data port!');
 
-      // 3. Listen for incoming ESP32 data (e.g., Sensor readings)
+      // --- 1. START THE SLEEP SESSION ---
+      _sessionStartTime = DateTime.now();
+      _noiseReadings.clear();
+      _awakeSeconds = 0;
+
+      // Listen for incoming ESP32 data
       String buffer = "";
       connection!.input!.listen((Uint8List data) {
         buffer += String.fromCharCodes(data);
         
-        // Parse complete lines (ESP32 sends data ending with \n)
         while (buffer.contains('\n')) {
           int index = buffer.indexOf('\n');
           String message = buffer.substring(0, index).trim();
           buffer = buffer.substring(index + 1);
           
           if (message.isNotEmpty) {
-            _dataStream.add(message);
+            _dataStream.add(message); // Broadcast to UI
+
+            // --- 2. AGGREGATE SENSOR DATA BEHIND THE SCENES ---
+            if (message.startsWith("DATA:")) {
+              try {
+                String cleanData = message.substring(5).trim();
+                List<String> parts = cleanData.split('|');
+                
+                if (parts.length >= 4) {
+                  String motion = parts[1].trim();
+                  int mic = int.tryParse(parts[3].trim()) ?? 0;
+                  
+                  _noiseReadings.add(mic); // Store noise for average calculation
+                  if (motion == "YES") {
+                    _awakeSeconds++; // Track tossing and turning
+                  }
+                }
+              } catch (e) {
+                print("Live tracking parse error: $e");
+              }
+            }
           }
         }
       }).onDone(() {
         print('Disconnected by remote request');
-        disconnect();
+        disconnect(); // This triggers the save logic
       });
       
       sendCommand("DIAG");
-
       _dataStream.add("STATUS:Connected");
 
       return true;
@@ -85,15 +111,65 @@ class BluetoothController {
 
   void sendCommand(String command) async {
     if (isConnected) {
-      // Send command with a newline character so ESP32 knows it's complete
       connection!.output.add(ascii.encode(command + "\n"));
       await connection!.output.allSent;
     }
   }
 
-  void disconnect() {
+  void disconnect() async {
+    // --- 3. END SESSION & SAVE TO DATABASE ---
+    if (_sessionStartTime != null) {
+      DateTime endTime = DateTime.now();
+      int totalMinutesInBed = endTime.difference(_sessionStartTime!).inMinutes;
+
+      // [Requirement] Only save sessions longer than 1 minute to prevent database spam
+      if (totalMinutesInBed >= 1) {
+        // A. Calculate Average Noise
+        int avgNoise = 0;
+        if (_noiseReadings.isNotEmpty) {
+          double sum = 0;
+          for (int noise in _noiseReadings) sum += noise;
+          avgNoise = (sum / _noiseReadings.length).round();
+        }
+
+        // B. Calculate Awake Time
+        int awakeMinutes = _awakeSeconds ~/ 60;
+
+        // C. Calculate Latency (Estimated base + tossing)
+        int latency = 15; // Prototype baseline assumption
+        if (totalMinutesInBed < latency) latency = totalMinutesInBed ~/ 2;
+
+        // D. Calculate Duration & Efficiency
+        int duration = totalMinutesInBed - latency - awakeMinutes;
+        if (duration < 0) duration = 0;
+
+        int efficiency = totalMinutesInBed > 0 ? ((duration / totalMinutesInBed) * 100).round() : 0;
+
+        // E. Calculate Final Quality Score
+        int quality = (efficiency * 0.8 + (100 - (avgNoise / 100)) * 0.2).round().clamp(0, 100);
+
+        // F. Build and Insert the Object
+        SleepSession liveSession = SleepSession(
+          startTime: _sessionStartTime!,
+          endTime: endTime,
+          durationMinutes: duration,
+          sleepLatency: latency,
+          sleepEfficiency: efficiency,
+          avgNoiseLevel: avgNoise,
+          qualityScore: quality,
+        );
+
+        await DatabaseHelper.instance.createSession(liveSession);
+        print("✅ REAL SLEEP SESSION SAVED TO SQLITE!");
+      } else {
+        print("Session too short to save (< 1 minute).");
+      }
+    }
+
+    // Clean up
+    _sessionStartTime = null;
     connection?.dispose();
     connection = null;
-    _dataStream.add("STATUS:Disconnected"); // Notify UI to update colors
+    _dataStream.add("STATUS:Disconnected");
   }
 }
