@@ -128,43 +128,6 @@ class DatabaseHelper {
     }
   }
 
-  // UPDATED DUMMY DATA GENERATOR
-  Future<void> generateDummyData() async {
-    final db = await instance.database;
-    await db.delete('sessions'); 
-    
-    var rng = Random();
-    DateTime now = DateTime.now();
-    
-    for (int i = 1; i <= 7; i++) {
-      DateTime start = now.subtract(Duration(days: i, hours: 22 + rng.nextInt(2))); 
-      DateTime end = start.add(Duration(hours: 6 + rng.nextInt(3))); // 6-9 hours in bed
-      
-      int timeInBedMinutes = end.difference(start).inMinutes;
-      int latency = 15 + rng.nextInt(30); // 15-45 min latency
-      int awakeTime = 10 + rng.nextInt(20); // Random awake time during night
-      
-      // Calculate derived metrics
-      int actualSleepDuration = timeInBedMinutes - latency - awakeTime;
-      int efficiency = ((actualSleepDuration / timeInBedMinutes) * 100).toInt();
-      
-      int noise = 2000 + rng.nextInt(5000); 
-      int quality = (efficiency * 0.8 + (100 - (noise/100))*0.2).toInt().clamp(0, 100);
-
-      SleepSession dummy = SleepSession(
-        startTime: start,
-        endTime: end,
-        durationMinutes: actualSleepDuration,
-        sleepLatency: latency,
-        sleepEfficiency: efficiency,
-        avgNoiseLevel: noise,
-        qualityScore: quality
-      );
-      await createSession(dummy);
-      print("Created Dummy session for day -$i");
-    }
-  }
-
   Future<void> exportDataToCSV() async {
     final db = await instance.database;
     // Pulls every sleep session, sorted chronologically
