@@ -57,6 +57,8 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
           _connColor = Colors.redAccent;
           _sensorStatus = "Inactive";
           _sensorColor = Colors.white60;
+          _batteryStatus = "--%";
+          _battColor = Colors.white60;
         });
       }
 

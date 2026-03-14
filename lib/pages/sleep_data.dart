@@ -56,6 +56,17 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
     _streamSubscription = _btController.dataStream.listen((message) {
       if (!mounted) return;
 
+      if (message == "STATUS:Disconnected") {
+        setState(() {
+          _systemTime = "--:--:--";
+          _motionStatus = "Waiting...";
+          _sleepTimer = "-- min";
+          _micLevel = "0";
+          _motionColor = Colors.white70;
+        });
+        return;
+      }
+
       if (message.startsWith("DATA:")) {
         try {
           String cleanData = message.substring(5).trim();

@@ -94,6 +94,16 @@ class _DiagnosticScreenContentState extends State<DiagnosticScreenContent> {
     _streamSubscription = _btController.dataStream.listen((message) {
       if (!mounted) return;
 
+      if (message == "STATUS:Disconnected") {
+        setState(() {
+          _connStatus = "Failed";
+          _connColor = Colors.red;
+          _statusText = "Device Disconnected";
+          _progressValue = 0.0;
+        });
+        return;
+      }
+
       if (message.startsWith("DIAG:Battery:")) {
         String voltStr = message.split(":")[2].replaceAll("V", "").trim();
         double volts = double.tryParse(voltStr) ?? 0.0;
