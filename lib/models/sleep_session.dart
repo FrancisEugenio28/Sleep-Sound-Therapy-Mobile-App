@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:math';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import 'dart:io';
+import 'package:csv/csv.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 // 1. THE DATA MODEL
 class SleepSession {
@@ -159,5 +163,44 @@ class DatabaseHelper {
       await createSession(dummy);
       print("Created Dummy session for day -$i");
     }
+  }
+
+  Future<void> exportDataToCSV() async {
+    final db = await instance.database;
+    // Pulls every sleep session, sorted chronologically
+    final List<Map<String, dynamic>> rawData = await db.query('sessions', orderBy: 'startTime ASC');
+
+    if (rawData.isEmpty) return;
+
+    // 1. Create the CSV Header Row
+    List<List<dynamic>> csvData = [
+      ['Session ID', 'Start Time', 'End Time', 'Duration (mins)', 'Latency (mins)', 'Efficiency (%)', 'Avg Noise', 'Quality Score']
+    ];
+
+    // 2. Loop through the SQLite data and add it to the CSV rows
+    for (var row in rawData) {
+      csvData.add([
+        row['id'],
+        row['startTime'],
+        row['endTime'],
+        row['durationMinutes'],
+        row['sleepLatency'],
+        row['sleepEfficiency'],
+        row['avgNoiseLevel'],
+        row['qualityScore']
+      ]);
+    }
+
+    // 3. Convert the Dart List to a raw CSV String
+    String csvString = const ListToCsvConverter().convert(csvData);
+
+    // 4. Save the file temporarily to the phone's hidden app storage
+    final directory = await getApplicationDocumentsDirectory();
+    final String filePath = '${directory.path}/SleepData_Export.csv';
+    final File file = File(filePath);
+    await file.writeAsString(csvString);
+
+    // 5. Open the native Android Share/Email menu
+    await Share.shareXFiles([XFile(filePath)], text: 'Attached is the raw Sleep Data CSV for thesis analysis.');
   }
 }

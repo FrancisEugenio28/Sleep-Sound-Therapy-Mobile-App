@@ -97,17 +97,42 @@ class _SleepDataPageContentState extends State<SleepDataPageContent> {
     return Scaffold(
       backgroundColor: const Color(0xFF1a1a2e),
       // --- DEV TOOL: Button to generate fake data for testing ---
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          await DatabaseHelper.instance.generateDummyData();
-          _refreshDatabaseData(); // Refresh UI
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Generated 7 Days of Sleep Data")),
-          );
-        },
-        label: const Text("Gen Data"),
-        icon: const Icon(Icons.developer_mode),
-        backgroundColor: Colors.white10,
+      // --- DEV TOOLS: Generate & Export Data ---
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: "genDataBtn",
+            onPressed: () async {
+              await DatabaseHelper.instance.generateDummyData();
+              _refreshDatabaseData(); // Refresh UI
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Generated 7 Days of Sleep Data")),
+              );
+            },
+            label: const Text("Gen Data"),
+            icon: const Icon(Icons.developer_mode),
+            backgroundColor: Colors.white10,
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: "exportCsvBtn",
+            onPressed: () async {
+              try {
+                // Call the new export function
+                await DatabaseHelper.instance.exportDataToCSV();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Export failed: $e"), backgroundColor: Colors.red),
+                );
+              }
+            },
+            label: const Text("Export CSV"),
+            icon: const Icon(Icons.download),
+            backgroundColor: const Color(0xFF6a1b9a), // Matches your purple theme
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
