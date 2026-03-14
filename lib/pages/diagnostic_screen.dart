@@ -82,8 +82,8 @@ class _DiagnosticScreenContentState extends State<DiagnosticScreenContent> {
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) {
         setState(() {
-          _audioStatus = "Operational"; 
-          _audioColor = _primaryGreen;
+          _audioStatus = _btController.isConnected ? "Operational" : "Not Ready"; 
+          _audioColor = _btController.isConnected ? _primaryGreen : Colors.red;
           _progressValue = 0.5;
           _statusText = "Reading Battery Voltage...";
         });
@@ -98,6 +98,8 @@ class _DiagnosticScreenContentState extends State<DiagnosticScreenContent> {
         setState(() {
           _connStatus = "Failed";
           _connColor = Colors.red;
+          _audioStatus = "Not Ready";
+          _audioColor = Colors.red;
           _statusText = "Device Disconnected";
           _progressValue = 0.0;
         });

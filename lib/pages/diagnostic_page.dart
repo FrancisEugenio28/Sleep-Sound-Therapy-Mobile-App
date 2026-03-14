@@ -17,10 +17,12 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
 
   // Default States
   String _connStatus = "Disconnected";
+  String _speakerStatus = "NOT READY";
   String _batteryStatus = "--%";
   String _sensorStatus = "Inactive";
   
   Color _connColor = Colors.redAccent;
+  Color _speakerColor = Colors.white60;
   Color _battColor = Colors.white60;
   Color _sensorColor = Colors.white60;
 
@@ -42,6 +44,8 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
       setState(() {
         _connStatus = "CONNECTED";
         _connColor = const Color(0xFF4CAF50); // Green
+        _speakerStatus = "READY";
+        _speakerColor = const Color(0xFF4CAF50);
       });
     }
   }
@@ -55,6 +59,8 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
         setState(() {
           _connStatus = "DISCONNECTED";
           _connColor = Colors.redAccent;
+          _speakerStatus = "NOT READY";
+          _speakerColor = Colors.white60;
           _sensorStatus = "Inactive";
           _sensorColor = Colors.white60;
           _batteryStatus = "--%";
@@ -67,6 +73,8 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
         setState(() {
           _connStatus = "CONNECTED";
           _connColor = const Color(0xFF4CAF50);
+          _speakerStatus = "READY";
+          _speakerColor = const Color(0xFF4CAF50);
         });
       }
 
@@ -184,7 +192,7 @@ class _DiagnosticPageContentState extends State<DiagnosticPageContent> {
                 children: [
                   StatusCard(title: 'Connectivity', subtitle: 'Bluetooth Link', status: _connStatus, statusColor: _connColor),
                   const SizedBox(height: 12),
-                  const StatusCard(title: 'Speaker', subtitle: 'Audio Output', status: 'READY', statusColor: Color(0xFF4CAF50)), // Speaker is assumed ready if connected
+                  StatusCard(title: 'Speaker', subtitle: 'Audio Output', status: _speakerStatus, statusColor: _speakerColor),
                   const SizedBox(height: 12),
                   StatusCard(title: 'Battery', subtitle: 'Power Level', status: _batteryStatus, statusColor: _battColor),
                   const SizedBox(height: 12),
