@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../models/sleep_session.dart'; // REQUIRED to access the database
+import '../models/sleep_session.dart';
 
 class BluetoothController {
   static final BluetoothController _instance = BluetoothController._internal();
@@ -18,6 +18,7 @@ class BluetoothController {
 
   // --- LIVE SESSION TRACKING VARIABLES ---
   DateTime? _sessionStartTime;
+  DateTime? _firstSleepOnsetTime; // NEW: Tracks the exact moment of sleep
   List<int> _noiseReadings = [];
   int _awakeSeconds = 0;
 
@@ -30,7 +31,6 @@ class BluetoothController {
     ].request();
   }
 
-  // Classic Bluetooth Connect
   Future<bool> connectToDataService() async {
     try {
       print("DEBUG: Getting paired devices...");
@@ -57,10 +57,10 @@ class BluetoothController {
 
       // --- 1. START THE SLEEP SESSION ---
       _sessionStartTime = DateTime.now();
+      _firstSleepOnsetTime = null; // Reset the sleep onset timestamp
       _noiseReadings.clear();
       _awakeSeconds = 0;
 
-      // Listen for incoming ESP32 data
       String buffer = "";
       connection!.input!.listen((Uint8List data) {
         buffer += String.fromCharCodes(data);
@@ -72,6 +72,13 @@ class BluetoothController {
           
           if (message.isNotEmpty) {
             _dataStream.add(message); // Broadcast to UI
+
+            // --- NEW: DYNAMIC SLEEP LATENCY TRACKING ---
+            // If the ESP32 announces sleep, and we haven't recorded it yet tonight
+            if (message.contains("State -> ASLEEP") && _firstSleepOnsetTime == null) {
+              _firstSleepOnsetTime = DateTime.now();
+              print("DEBUG: True Sleep Onset recorded at $_firstSleepOnsetTime");
+            }
 
             // --- 2. AGGREGATE SENSOR DATA BEHIND THE SCENES ---
             if (message.startsWith("DATA:")) {
@@ -122,7 +129,6 @@ class BluetoothController {
       DateTime endTime = DateTime.now();
       int totalMinutesInBed = endTime.difference(_sessionStartTime!).inMinutes;
 
-      // [Requirement] Only save sessions longer than 1 minute to prevent database spam
       if (totalMinutesInBed >= 1) {
         // A. Calculate Average Noise
         int avgNoise = 0;
@@ -135,9 +141,14 @@ class BluetoothController {
         // B. Calculate Awake Time
         int awakeMinutes = _awakeSeconds ~/ 60;
 
-        // C. Calculate Latency (Estimated base + tossing)
-        int latency = 15; // Prototype baseline assumption
-        if (totalMinutesInBed < latency) latency = totalMinutesInBed ~/ 2;
+        // C. Calculate Latency (DYNAMIC MATH)
+        int latency = 15; // Fallback baseline if they never fall asleep
+        if (_firstSleepOnsetTime != null) {
+          // Math: The exact minutes between connecting Bluetooth and falling asleep
+          latency = _firstSleepOnsetTime!.difference(_sessionStartTime!).inMinutes;
+        } else if (totalMinutesInBed < latency) {
+          latency = totalMinutesInBed ~/ 2;
+        }
 
         // D. Calculate Duration & Efficiency
         int duration = totalMinutesInBed - latency - awakeMinutes;
@@ -160,14 +171,12 @@ class BluetoothController {
         );
 
         await DatabaseHelper.instance.createSession(liveSession);
-        print("✅ REAL SLEEP SESSION SAVED TO SQLITE!");
-      } else {
-        print("Session too short to save (< 1 minute).");
+        print("✅ REAL SLEEP SESSION SAVED TO SQLITE! Latency: $latency mins");
       }
     }
 
-    // Clean up
     _sessionStartTime = null;
+    _firstSleepOnsetTime = null;
     connection?.dispose();
     connection = null;
     _dataStream.add("STATUS:Disconnected");
