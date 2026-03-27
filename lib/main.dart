@@ -5,9 +5,17 @@ import 'pages/sleep_data.dart';
 import 'pages/diagnostic_page.dart';
 import 'pages/diagnostic_screen.dart';
 
+// Import the new background service file we just created
+// (Ensure this path matches wherever you saved it in your lib folder!)
+import 'background_service.dart'; 
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // 1. Initialize our new Background Service Engine (The Hardware Shield)
+  await initializeBackgroundService();
+
+  // 2. Initialize your existing Background Audio Engine
   await JustAudioBackground.init(
     androidNotificationChannelId: 'com.example.flutter_application_1.channel.audio',
     androidNotificationChannelName: 'Audio playback',

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/sleep_session.dart';
+import 'package:flutter_background_service/flutter_background_service.dart';
 
 class BluetoothController {
   static final BluetoothController _instance = BluetoothController._internal();
@@ -28,6 +29,7 @@ class BluetoothController {
       Permission.bluetoothScan,
       Permission.bluetoothConnect,
       Permission.location,
+      Permission.notification,
     ].request();
   }
 
@@ -60,6 +62,8 @@ class BluetoothController {
       _firstSleepOnsetTime = null; // Reset the sleep onset timestamp
       _noiseReadings.clear();
       _awakeSeconds = 0;
+
+      FlutterBackgroundService().startService();
 
       String buffer = "";
       connection!.input!.listen((Uint8List data) {
@@ -180,5 +184,7 @@ class BluetoothController {
     connection?.dispose();
     connection = null;
     _dataStream.add("STATUS:Disconnected");
+
+    FlutterBackgroundService().invoke('stopService'); // Tell the background service to shut down
   }
 }
