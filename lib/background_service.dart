@@ -31,7 +31,7 @@ Future<void> initializeBackgroundService() async {
       isForegroundMode: true,
       notificationChannelId: 'smart_sleep_channel',
       initialNotificationTitle: 'SmartSleep Active',
-      initialNotificationContent: 'Monitoring hardware telemetry securely...',
+      initialNotificationContent: 'Monitoring user sleep...',
       foregroundServiceNotificationId: 888,
       foregroundServiceTypes: [AndroidForegroundType.connectedDevice]
     ),
@@ -43,8 +43,6 @@ Future<void> initializeBackgroundService() async {
 }
 
 // 3. The Isolated Background Thread
-// @pragma('vm:entry-point') tells the Flutter compiler NOT to strip this out, 
-// because it runs independently of your main UI.
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
   // Ensure the Dart plugin registry is ready in the background
@@ -53,5 +51,20 @@ void onStart(ServiceInstance service) async {
   // Listen for the command from your Bluetooth Controller to shut down in the morning
   service.on('stopService').listen((event) {
     service.stopSelf();
+  });
+
+  // --- NEW: THE NOTIFICATION HEARTBEAT ---
+  // This timer ticks every 60 seconds. By updating the notification text, 
+  // it mathematically proves to the Android OS that the app is not frozen, 
+  // preventing the 30-minute idle execution kill script.
+  Timer.periodic(const Duration(minutes: 1), (timer) async {
+    if (service is AndroidServiceInstance) {
+      if (await service.isForegroundService()) {
+        service.setForegroundNotificationInfo(
+          title: 'SmartSleep Active',
+          content: 'Smart Sleep active... (Uptime: ${timer.tick} min)',
+        );
+      }
+    }
   });
 }

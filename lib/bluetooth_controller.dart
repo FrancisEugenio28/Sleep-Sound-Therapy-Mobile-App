@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/sleep_session.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:disable_battery_optimization/disable_battery_optimization.dart';
 
 class BluetoothController {
   static final BluetoothController _instance = BluetoothController._internal();
@@ -25,6 +26,7 @@ class BluetoothController {
   int _awakeSeconds = 0;
 
   Future<void> initPermissions() async {
+    // 1. Request standard hardware permissions
     await [
       Permission.bluetooth,
       Permission.bluetoothScan,
@@ -32,6 +34,23 @@ class BluetoothController {
       Permission.location,
       Permission.notification,
     ].request();
+
+    // 2. Check and Request Battery Exemption
+    bool? isBatteryExempt = await DisableBatteryOptimization.isBatteryOptimizationDisabled;
+    
+    if (isBatteryExempt != true) {
+      await DisableBatteryOptimization.showDisableBatteryOptimizationSettings();
+    }
+
+    // 3. (Optional but highly recommended for POCO/Xiaomi) 
+    // Ask the user to enable AutoStart if the phone supports it
+    bool? isAutoStartEnabled = await DisableBatteryOptimization.isAutoStartEnabled;
+    if (isAutoStartEnabled != true) {
+      await DisableBatteryOptimization.showEnableAutoStartSettings(
+        "Enable AutoStart", 
+        "Please allow Smart Sleep to auto-start so the tracker isn't killed overnight."
+      );
+    }
   }
 
   Future<bool> connectToDataService() async {
