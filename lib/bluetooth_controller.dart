@@ -5,6 +5,7 @@ import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/sleep_session.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 class BluetoothController {
   static final BluetoothController _instance = BluetoothController._internal();
@@ -64,6 +65,7 @@ class BluetoothController {
       _awakeSeconds = 0;
 
       FlutterBackgroundService().startService();
+      WakelockPlus.enable(); // Keep the CPU awake to ensure continuous tracking
 
       String buffer = "";
       connection!.input!.listen((Uint8List data) {
@@ -186,5 +188,6 @@ class BluetoothController {
     _dataStream.add("STATUS:Disconnected");
 
     FlutterBackgroundService().invoke('stopService'); // Tell the background service to shut down
+    WakelockPlus.disable(); // Allow the CPU to sleep again
   }
 }
