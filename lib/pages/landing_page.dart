@@ -8,6 +8,7 @@ import 'package:syncfusion_flutter_sliders/sliders.dart';
 import '../widgets/shared_header.dart';
 import '../models/sound_player.dart';
 import '../bluetooth_controller.dart';
+import 'dart:async';
 
 class MusicPageContent extends StatefulWidget {
   const MusicPageContent({super.key});
@@ -25,6 +26,7 @@ class _MusicPageContentState extends State<MusicPageContent> {
 
   // 1. Initialize Bluetooth Controller
   final BluetoothController _btController = BluetoothController();
+  StreamSubscription? _btCommandSubscription; // To listen for Bluetooth events (e.g., disconnection)
 
   // Frequency/Volume Value
   double frequencyValue = 1.0; // Default to 1.0x (Original Sound)
@@ -65,16 +67,20 @@ class _MusicPageContentState extends State<MusicPageContent> {
       }
     });
     _audioPlayer.setLoopMode(LoopMode.one);
+
+    _btCommandSubscription = _btController.dataStream.listen((message) {
+      if (message == "CMD:PAUSE_AUDIO") {
+        print("DEBUG: Received software pause command from ESP32!");
+        if (_audioPlayer.playing) {
+          _audioPlayer.pause(); // Force the app to pause the music
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
-    // If you want the audio to continue playing even when this widget is disposed 
-    // (e.g., if the user closes the app but the background service should keep it alive),
-    // you might NOT want to dispose the player here, or use a more persistent player management.
-    // However, for this app, just_audio_background will handle the service.
-    // We'll keep the dispose but note that it might stop audio if the process is killed
-    // and this widget is part of the disposal chain.
+    _btCommandSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }
